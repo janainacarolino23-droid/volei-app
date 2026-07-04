@@ -138,6 +138,8 @@
       DOC_REF.onSnapshot(docSnap=>{
         if(!docSnap.exists) return;
         const dados = docSnap.data();
+        const eraPrimeiraCarga = !firebasePronto;
+        const dbAntes = eraPrimeiraCarga ? null : JSON.parse(JSON.stringify(DB));
         DB.usuarios   = dados.usuarios   || [];
         DB.partidas   = dados.partidas   || [];
         DB.locais     = dados.locais     || [];
@@ -145,6 +147,7 @@
         DB.avaliacoes = dados.avaliacoes || [];
         DB.sugestoes  = dados.sugestoes  || [];
         firebasePronto = true;
+        if(!eraPrimeiraCarga) verificarAvisos(dbAntes, DB);
         atualizarTelaAtual();
       }, err=>{
         console.error('Erro ao sincronizar com o Firestore:', err);
@@ -230,6 +233,9 @@
       <button onclick="abrirAreaJogador()" id="btn-nav-area-jogador" class="hidden bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
         <i class="fas fa-star"></i><span class="hidden sm:inline"> Avaliar / Minhas Partidas</span>
       </button>
+      <button onclick="pedirPermissaoNotificacao()" id="btn-nav-notificacoes" class="hidden bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
+        <i class="fas fa-bell"></i><span class="hidden sm:inline"> Ativar Avisos</span>
+      </button>
       <button onclick="logout()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
         <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline"> Sair</span>
       </button>
@@ -309,11 +315,20 @@
 
   <!-- PAINEL JOGADOR -->
   <section id="tela-jogador" class="hidden max-w-2xl mx-auto">
-    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-6 flex items-center gap-3 sm:gap-4">
-      <div id="jogador-avatar"></div>
-      <div>
-        <h2 class="text-2xl font-display font-semibold text-court-ink">Bem-vindo(a), <span id="jogador-nome" class="text-court-teal"></span>!</h2>
-        <p class="text-court-muted text-sm mt-1">Abaixo estão as suas partidas. Mantenha suas avaliações em dia.</p>
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-6">
+      <div class="flex items-center gap-3 sm:gap-4">
+        <div id="jogador-avatar"></div>
+        <div>
+          <h2 class="text-2xl font-display font-semibold text-court-ink">Bem-vindo(a), <span id="jogador-nome" class="text-court-teal"></span>!</h2>
+          <p class="text-court-muted text-sm mt-1">Abaixo estão as suas partidas. Mantenha suas avaliações em dia.</p>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-court-line flex items-center gap-3 flex-wrap">
+        <label class="text-sm font-medium text-court-teal cursor-pointer bg-court-teal/10 hover:bg-court-teal/20 px-3 py-2 rounded-lg transition">
+          <i class="fas fa-camera mr-1"></i> Alterar minha foto
+          <input type="file" accept="image/*" id="input-upload-foto" class="hidden" onchange="uploadFotoPerfil(event)">
+        </label>
+        <span id="status-upload-foto" class="text-xs text-court-muted"></span>
       </div>
     </div>
 
@@ -498,7 +513,8 @@
                 </button>
               </div>
             </form>
-            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto cadastrada, o sistema procura automaticamente o arquivo <code>&lt;usuario&gt;.jpg</code> na raiz do repositório do GitHub (ex: <code>jairo.jpg</code>, ao lado do <code>index.html</code>). Se o arquivo não existir, aparece um avatar colorido com as iniciais.</p>
+            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto cadastrada, o sistema procura automaticamente o arquivo <code>&lt;usuario&gt;.jpg</code> na raiz do repositório do GitHub (ex: <code>jairo.jpg</code>, ao lado do <code>index.html</code>). Se o arquivo não existir, aparece um avatar colorido com as iniciais. Cada jogador também pode enviar a própria foto direto pelo celular, no botão "Alterar minha foto" dentro da sua área de jogador.</p>
+            <p class="text-xs text-court-muted mt-1"><i class="fas fa-triangle-exclamation mr-1 text-amber-600"></i>Fotos enviadas pelo app ficam salvas comprimidas dentro do banco de dados. Use com moderação — evite que todo mundo troque de foto toda hora, pra não pesar demais o banco.</p>
           </div>
 
           <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
@@ -812,6 +828,7 @@
     document.getElementById('nav-user-name').textContent = user.nome;
     document.getElementById('nav-user-avatar').innerHTML = avatarHTML(user, 'w-9 h-9 text-xs');
     document.getElementById('btn-nav-area-jogador').classList.toggle('hidden', user.perfil !== 'admin');
+    atualizarBotaoNotificacao();
     if(user.perfil === 'admin'){
       mudarTela('tela-admin');
       mudarSubTelaAdmin('jogadores');
@@ -827,6 +844,59 @@
     empilharTelaAtual();
     mudarTela('tela-jogador');
     mudarSubTelaJogador('partidas');
+  }
+
+  // ---------- Avisos (notificações do navegador) ----------
+  // Importante: isso usa a Notification API do navegador, então só funciona
+  // enquanto o app está aberto (numa aba ou instalado) no aparelho da pessoa.
+  // Não é um "push" que acorda o celular com o app fechado — isso exigiria
+  // um servidor separado (Firebase Cloud Messaging), que este projeto não tem.
+  function atualizarBotaoNotificacao(){
+    const btn = document.getElementById('btn-nav-notificacoes');
+    if(!btn) return;
+    const suportado = 'Notification' in window;
+    btn.classList.toggle('hidden', !suportado || Notification.permission !== 'default');
+  }
+
+  function pedirPermissaoNotificacao(){
+    if(!('Notification' in window)){
+      alert('Este navegador não suporta notificações.');
+      return;
+    }
+    Notification.requestPermission().then(()=>{
+      atualizarBotaoNotificacao();
+    });
+  }
+
+  function notificar(titulo, corpo){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    try{
+      new Notification(titulo, { body: corpo, icon: 'icon-192.png' });
+    }catch(e){
+      console.warn('Não foi possível exibir a notificação:', e);
+    }
+  }
+
+  // Compara o estado antigo com o novo (vindos do Firestore) e dispara avisos
+  // quando alguém confirma presença, quando faltam poucas vagas, ou quando
+  // a lista fecha (12/12).
+  function verificarAvisos(dbAntes, dbDepois){
+    if(!dbAntes) return; // primeira carga da página: não avisa nada
+    dbDepois.partidas.forEach(pNova=>{
+      const pAntiga = dbAntes.partidas.find(p=>p.id===pNova.id);
+      const confAntes = pAntiga ? (pAntiga.confirmados||[]).length : 0;
+      const confDepois = (pNova.confirmados||[]).length;
+      if(confDepois > confAntes){
+        const vagas = 12 - confDepois;
+        if(vagas === 0){
+          notificar('Lista completa! 🏐', `A partida de ${formatarData(pNova.data)} já tem 12/12 confirmados.`);
+        } else if(vagas <= 2){
+          notificar('Últimas vagas! 🏐', `Faltam só ${vagas} vaga(s) para ${formatarData(pNova.data)}.`);
+        } else {
+          notificar('Nova confirmação 🏐', `${confDepois}/12 confirmados para ${formatarData(pNova.data)}.`);
+        }
+      }
+    });
   }
 
   function logout(){
@@ -900,6 +970,84 @@
         </div>`;
       }).join('');
     }
+  }
+
+  // Envia a foto escolhida para o Firebase Storage e salva só o link (URL)
+  // Sem usar o Firebase Storage (que exige plano pago), a foto é redimensionada
+  // e comprimida aqui mesmo no navegador e guardada como base64 dentro do
+  // próprio documento do Firestore. Por isso é essencial manter o arquivo
+  // pequeno — o documento inteiro do app tem um limite de 1MB no total.
+  function uploadFotoPerfil(event){
+    const arquivo = event.target.files[0];
+    event.target.value = ''; // permite escolher o mesmo arquivo de novo depois
+    if(!arquivo || !usuarioLogado) return;
+
+    if(!arquivo.type.startsWith('image/')){
+      alert('Selecione um arquivo de imagem (jpg, png, etc).');
+      return;
+    }
+    if(arquivo.size > 8 * 1024 * 1024){
+      alert('A imagem deve ter no máximo 8MB (antes de comprimir).');
+      return;
+    }
+
+    const status = document.getElementById('status-upload-foto');
+    if(status) status.textContent = 'Processando foto...';
+
+    const leitor = new FileReader();
+    leitor.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        // Recorta em quadrado (centralizado) e redimensiona pra um tamanho pequeno
+        const TAMANHO = 220;
+        const lado = Math.min(img.width, img.height);
+        const sx = (img.width - lado) / 2;
+        const sy = (img.height - lado) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = TAMANHO;
+        canvas.height = TAMANHO;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, lado, lado, 0, 0, TAMANHO, TAMANHO);
+
+        // Tenta qualidades decrescentes até caber num tamanho seguro (~50KB)
+        const LIMITE_BYTES = 50 * 1024;
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        [0.5, 0.35, 0.2].some(q=>{
+          const tamanhoAprox = dataUrl.length * 3 / 4;
+          if(tamanhoAprox <= LIMITE_BYTES) return true;
+          dataUrl = canvas.toDataURL('image/jpeg', q);
+          return false;
+        });
+
+        const tamanhoFinalKB = Math.round((dataUrl.length * 3/4) / 1024);
+        if(tamanhoFinalKB > 80){
+          if(status) status.textContent = '';
+          alert('Essa imagem ficou pesada demais mesmo depois de comprimida. Tente uma foto mais simples (rosto centralizado, sem fundo muito detalhado).');
+          return;
+        }
+
+        const u = DB.usuarios.find(x=>x.id===usuarioLogado.id);
+        if(u) u.foto = dataUrl;
+        usuarioLogado.foto = dataUrl;
+        salvarEstado();
+        document.getElementById('jogador-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-14 h-14 text-lg');
+        document.getElementById('nav-user-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-9 h-9 text-xs');
+        if(status){
+          status.textContent = 'Foto atualizada!';
+          setTimeout(()=>{ status.textContent=''; }, 3000);
+        }
+      };
+      img.onerror = ()=>{
+        if(status) status.textContent = '';
+        alert('Não foi possível ler essa imagem. Tente outro arquivo.');
+      };
+      img.src = e.target.result;
+    };
+    leitor.onerror = ()=>{
+      if(status) status.textContent = '';
+      alert('Não foi possível ler o arquivo. Tente novamente.');
+    };
+    leitor.readAsDataURL(arquivo);
   }
 
   // ---------- Avaliação ----------
@@ -1014,6 +1162,7 @@
               <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider"><i class="fas fa-list-check mr-1"></i> Pré-lista (${confirmados.length}/12) <span class="text-emerald-600 normal-case">· ${pagos.length} pagaram ✅</span></h3>
               <div class="flex items-center gap-3">
                 ${ehAdminVisaoGeral ? `<button onclick="copiarPreListaWhatsapp(${partida.id})" class="text-xs font-semibold text-emerald-600 hover:underline"><i class="fab fa-whatsapp mr-1"></i>Copiar p/ WhatsApp</button>` : ''}
+                ${ehAdminVisaoGeral ? `<button onclick="copiarCobrancaWhatsapp(${partida.id})" class="text-xs font-semibold text-court-coral hover:underline"><i class="fas fa-coins mr-1"></i>Cobrar pagamento</button>` : ''}
                 <button onclick="abrirListaProximoJogo()" class="text-xs font-semibold text-court-teal hover:underline">Ver / confirmar presença</button>
               </div>
             </div>
@@ -1104,7 +1253,10 @@
             <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
             <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
           </div>
-          ${ehAdmin ? `<button onclick="copiarPreListaWhatsapp(${partida.id})" class="text-xs font-semibold text-emerald-600 hover:underline shrink-0"><i class="fab fa-whatsapp mr-1"></i>Copiar p/ WhatsApp</button>` : ''}
+          <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+            ${ehAdmin ? `<button onclick="copiarPreListaWhatsapp(${partida.id})" class="text-xs font-semibold text-emerald-600 hover:underline"><i class="fab fa-whatsapp mr-1"></i>Copiar p/ WhatsApp</button>` : ''}
+            ${ehAdmin ? `<button onclick="copiarCobrancaWhatsapp(${partida.id})" class="text-xs font-semibold text-court-coral hover:underline"><i class="fas fa-coins mr-1"></i>Cobrar pagamento</button>` : ''}
+          </div>
         </div>
         <p class="text-sm font-semibold text-court-teal mt-3">${partida.confirmados.length}/12 confirmados <span class="text-court-muted font-normal">·</span> <span class="text-emerald-600">${partida.pagos.length} pagaram ✅</span></p>
       </div>
@@ -1115,6 +1267,24 @@
 
   // Monta um texto pronto com a pré-lista e copia para a área de transferência,
   // para o admin colar direto no grupo do WhatsApp.
+  // Copia um texto para a área de transferência, com alternativa para
+  // navegadores/contextos sem suporte à Clipboard API.
+  function copiarTextoParaAreaDeTransferencia(texto){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(texto);
+    }
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    document.execCommand('copy');
+    document.body.removeChild(area);
+    return Promise.resolve();
+  }
+
   function copiarPreListaWhatsapp(partidaId){
     const partida = DB.partidas.find(p=>p.id===partidaId);
     if(!partida) return;
@@ -1142,25 +1312,39 @@
       ? `\nAinda tem ${vagas} vaga${vagas>1 ? 's' : ''} livre${vagas>1 ? 's' : ''}! Confirma aí no app 🙌`
       : `\nLista completa (12/12)! ✅`;
 
-    const copiar = (t)=>{
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        return navigator.clipboard.writeText(t);
-      }
-      // Alternativa para navegadores/contextos sem suporte à Clipboard API
-      const area = document.createElement('textarea');
-      area.value = t;
-      area.style.position = 'fixed';
-      area.style.opacity = '0';
-      document.body.appendChild(area);
-      area.focus();
-      area.select();
-      document.execCommand('copy');
-      document.body.removeChild(area);
-      return Promise.resolve();
-    };
-
-    copiar(texto).then(()=>{
+    copiarTextoParaAreaDeTransferencia(texto).then(()=>{
       alert('Pré-lista copiada! Agora é só colar no WhatsApp.');
+    }).catch(()=>{
+      alert('Não foi possível copiar automaticamente. Aqui está o texto para copiar manualmente:\n\n' + texto);
+    });
+  }
+
+  // Lembrete automático de pagamento: monta um texto só com quem confirmou
+  // presença mas ainda não pagou, pronto para colar no grupo do WhatsApp.
+  function copiarCobrancaWhatsapp(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    const confirmados = partida.confirmados || [];
+    const pagos = partida.pagos || [];
+    const pendentes = confirmados.filter(id=>!pagos.includes(id));
+
+    if(!pendentes.length){
+      alert('Todo mundo que confirmou já pagou! 🎉');
+      return;
+    }
+
+    let texto = `💰 *Família Vôlei — Lembrete de pagamento*\n`;
+    texto += `🗓 ${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}\n`;
+    texto += `📍 ${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}\n\n`;
+    texto += `Ainda estão pendentes:\n`;
+    pendentes.forEach((id,i)=>{
+      const u = DB.usuarios.find(x=>x.id===id);
+      texto += `${i+1}. ${u ? u.nome : '—'}\n`;
+    });
+    texto += `\nPor favor, acertem antes do jogo. Valeu! 🙏`;
+
+    copiarTextoParaAreaDeTransferencia(texto).then(()=>{
+      alert('Lembrete de pagamento copiado! Agora é só colar no WhatsApp.');
     }).catch(()=>{
       alert('Não foi possível copiar automaticamente. Aqui está o texto para copiar manualmente:\n\n' + texto);
     });
@@ -1502,7 +1686,9 @@
 
   // ---------- Ranking (usado pelo Admin e também pelo jogador em "Notas Gerais") ----------
   function construirRanking(){
-    return DB.usuarios.filter(u=>u.avaliavel !== false).map(u=>{
+    // Organizadores (avaliavel:false) e qualquer perfil "admin" nunca entram
+    // no ranking nem concorrem ao brinde, mesmo que tenham recebido notas.
+    return DB.usuarios.filter(u=>u.avaliavel !== false && u.perfil !== 'admin').map(u=>{
       const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===u.id);
       const media = recebidas.length ? recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length : 0;
       const partidasDisputadas = DB.partidas.filter(p=>p.participantes.includes(u.id)).length;
