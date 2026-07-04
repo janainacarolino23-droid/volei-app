@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Família Vôlei - Avaliação de Jogadores</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'court-bg': '#F5EFE1',
+          'court-ink': '#182B3A',
+          'court-teal': '#1F6F6B',
+          'court-teal-dark': '#154F4C',
+          'court-coral': '#E8623D',
+          'court-line': '#DED2B8',
+          'court-muted': '#6B6252'
+        },
+        fontFamily: {
+          display: ['"Fraunces"', 'serif'],
+          body: ['"Inter"', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .font-display { font-family: 'Fraunces', serif; }
+  .net-divider {
+    height: 5px;
+    background-image: repeating-linear-gradient(90deg, #18314533 0 10px, transparent 10px 20px);
+    border-radius: 2px;
+  }
+  .net-divider.light {
+    background-image: repeating-linear-gradient(90deg, #ffffff55 0 10px, transparent 10px 20px);
+  }
+</style>
+</head>
+<body class="bg-court-bg font-body text-court-ink min-h-screen">
+
+<script>
+  const DB = {
+    usuarios: [
+      { id: 1,  nome: "Janaína",  usuario: "janaina",  senha: "Janaina@Volei26",  perfil: "admin",   ativo: true, foto: "" },
+      { id: 2,  nome: "Jairo",    usuario: "jairo",    senha: "Jairo@Volei26",    perfil: "jogador", ativo: true, foto: "" },
+      { id: 3,  nome: "Valtinho", usuario: "valtinho", senha: "Valtinho@Volei26", perfil: "jogador", ativo: true, foto: "" },
+      { id: 4,  nome: "Mariana",  usuario: "mariana",  senha: "Mariana@Volei26",  perfil: "jogador", ativo: true, foto: "" },
+      { id: 5,  nome: "Jéssica",  usuario: "jessica",  senha: "Jessica@Volei26",  perfil: "jogador", ativo: true, foto: "" },
+      { id: 6,  nome: "José",     usuario: "jose",     senha: "Jose@Volei26",     perfil: "jogador", ativo: true, foto: "" },
+      { id: 7,  nome: "Geysy",    usuario: "geysy",    senha: "Geysy@Volei26",    perfil: "jogador", ativo: true, foto: "" },
+      { id: 8,  nome: "Geiliene", usuario: "geiliene", senha: "Geiliene@Volei26", perfil: "jogador", ativo: true, foto: "" },
+      { id: 9,  nome: "Bianca",   usuario: "bianca",   senha: "Bianca@Volei26",   perfil: "jogador", ativo: true, foto: "" },
+      { id: 10, nome: "Julia",    usuario: "julia",    senha: "Julia@Volei26",    perfil: "jogador", ativo: true, foto: "" },
+      { id: 11, nome: "Ariane",   usuario: "ariane",   senha: "Ariane@Volei26",   perfil: "jogador", ativo: true, foto: "" },
+      { id: 12, nome: "Kauã",     usuario: "kaua",     senha: "Kaua@Volei26",     perfil: "jogador", ativo: true, foto: "" },
+      { id: 13, nome: "Yuri",     usuario: "yuri",     senha: "Yuri@Volei26",     perfil: "jogador", ativo: true, foto: "" },
+      { id: 14, nome: "Pedro",    usuario: "pedro",    senha: "Pedro@Volei26",    perfil: "jogador", ativo: true, foto: "" }
+    ],
+    partidas: [
+      { id: 101, data: "2026-07-10", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Jogo regular", participantes: [2,3,4,5,6,7,8] },
+      { id: 102, data: "2026-07-17", horario: "19:30", local: "Praia Clube Sports", quadra: "Quadra 8", obs: "", participantes: [2,4,9,10,11,12,13,14] },
+      { id: 103, data: "2026-07-24", horario: "21:00", local: "Praia Clube Sports", quadra: "Quadra 9", obs: "", participantes: [3,5,6,9,12,13,14] },
+      { id: 104, data: "2026-07-31", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Final do mês", participantes: [2,3,5,6,9,11,13,14] }
+    ],
+    locais: ["Praia Clube Sports"],
+    quadras: ["Quadra 7", "Quadra 8", "Quadra 9"],
+    avaliacoes: []
+  };
+
+  let usuarioLogado = null;
+</script>
+
+<header id="main-nav" class="bg-court-teal text-white shadow-md hidden mb-6 sm:mb-8">
+  <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
+    <span class="text-base sm:text-xl font-display font-semibold flex items-center gap-2 truncate">
+      <i class="fas fa-volleyball shrink-0"></i> <span class="truncate">Família Vôlei</span>
+    </span>
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div id="nav-user-avatar"></div>
+      <span id="nav-user-name" class="font-medium text-sm hidden sm:inline"></span>
+      <button onclick="logout()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
+        <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline"> Sair</span>
+      </button>
+    </div>
+  </div>
+  <div class="net-divider light"></div>
+</header>
+
+<main class="container mx-auto px-3 sm:px-4 max-w-6xl pb-16">
+
+  <!-- LOGIN -->
+  <section id="tela-login" class="max-w-md mx-auto mt-8 sm:mt-16 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-court-line">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-court-teal/10 text-court-teal rounded-full mb-4">
+        <i class="fas fa-volleyball text-3xl"></i>
+      </div>
+      <h1 class="text-3xl font-display font-semibold text-court-ink">Família Vôlei</h1>
+      <p class="text-court-muted text-sm mt-1">Painel de avaliação entre jogadores</p>
+      <div class="net-divider mx-auto mt-4 w-24"></div>
+    </div>
+
+    <form onsubmit="login(event)" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-court-ink mb-1">Usuário</label>
+        <input type="text" id="login-username" required class="w-full px-3 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-court-ink mb-1">Senha</label>
+        <input type="password" id="login-password" required class="w-full px-3 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+      </div>
+      <div id="login-erro" class="text-red-500 text-sm font-medium hidden">
+        <i class="fas fa-exclamation-circle"></i> Usuário ou senha inválidos.
+      </div>
+      <button type="submit" class="w-full bg-court-coral hover:brightness-95 text-white font-semibold py-2.5 rounded-lg transition shadow-sm">
+        Entrar
+      </button>
+    </form>
+  </section>
+
+  <!-- PAINEL JOGADOR -->
+  <section id="tela-jogador" class="hidden max-w-2xl mx-auto">
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-6 flex items-center gap-3 sm:gap-4">
+      <div id="jogador-avatar"></div>
+      <div>
+        <h2 class="text-2xl font-display font-semibold text-court-ink">Bem-vindo(a), <span id="jogador-nome" class="text-court-teal"></span>!</h2>
+        <p class="text-court-muted text-sm mt-1">Abaixo estão as suas partidas. Mantenha suas avaliações em dia.</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+      <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Minhas Partidas</div>
+      <div id="lista-partidas-jogador" class="divide-y divide-court-line"></div>
+    </div>
+  </section>
+
+  <!-- AVALIAÇÃO -->
+  <section id="tela-avaliacao" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="mudarTela('tela-jogador')" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar ao painel
+      </button>
+      <span id="avaliacao-data-partida" class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold"></span>
+    </div>
+
+    <form onsubmit="salvarAvaliacao(event)" class="space-y-4">
+      <input type="hidden" id="avaliacao-partida-id">
+      <div id="lista-colegas-avaliacao" class="space-y-4"></div>
+      <button type="submit" class="w-full bg-court-teal hover:brightness-95 text-white font-bold py-3 rounded-xl transition shadow-md">
+        <i class="fas fa-paper-plane mr-2"></i> Enviar Avaliações
+      </button>
+    </form>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="tela-admin" class="hidden">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+      <div class="bg-white p-2 md:p-4 rounded-2xl shadow-sm border border-court-line h-fit flex md:block gap-1 md:space-y-1 overflow-x-auto md:overflow-visible">
+        <p class="hidden md:block text-xs font-bold text-court-muted px-3 uppercase tracking-wider mb-2">Menu Admin</p>
+        <button onclick="mudarSubTelaAdmin('jogadores')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap bg-court-teal/10 text-court-teal menu-admin-btn" id="btn-sub-jogadores">
+          <i class="fas fa-users w-5"></i> Jogadores
+        </button>
+        <button onclick="mudarSubTelaAdmin('partidas')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-partidas">
+          <i class="fas fa-calendar-alt w-5"></i> Partidas
+        </button>
+        <button onclick="mudarSubTelaAdmin('avaliacoes')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-avaliacoes">
+          <i class="fas fa-star w-5"></i> Avaliações
+        </button>
+        <button onclick="mudarSubTelaAdmin('ranking')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-ranking">
+          <i class="fas fa-trophy w-5"></i> Ranking &amp; Brinde
+        </button>
+        <button onclick="mudarSubTelaAdmin('exportar')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-exportar">
+          <i class="fas fa-code w-5"></i> Exportar Dados
+        </button>
+      </div>
+
+      <div class="md:grid-cols-1 md:col-span-3 space-y-6">
+
+        <!-- JOGADORES -->
+        <div id="sub-admin-jogadores" class="sub-admin-pane space-y-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line">
+            <h3 class="text-lg font-display font-semibold text-court-ink mb-4" id="titulo-form-jogador">Cadastrar Novo Jogador</h3>
+            <form onsubmit="salvarJogador(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+              <input type="hidden" id="jog-id">
+              <div class="sm:col-span-1">
+                <label class="block text-xs font-medium text-court-ink mb-1">Nome Completo</label>
+                <input type="text" id="jog-nome" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Usuário</label>
+                <input type="text" id="jog-user" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Senha</label>
+                <input type="text" id="jog-senha" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Foto (URL) — opcional</label>
+                <input type="text" id="jog-foto" placeholder="https://..." class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div class="flex items-center gap-4 h-10 sm:col-span-4 sm:justify-end">
+                <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer">
+                  <input type="checkbox" id="jog-ativo" checked class="w-4 h-4 text-court-teal rounded"> Ativo
+                </label>
+                <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                  Salvar
+                </button>
+              </div>
+            </form>
+            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto, cada jogador aparece com um avatar colorido de iniciais gerado automaticamente.</p>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[640px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4 w-14"></th>
+                  <th class="p-3 sm:p-4">Nome</th>
+                  <th class="p-3 sm:p-4">Usuário</th>
+                  <th class="p-3 sm:p-4">Senha</th>
+                  <th class="p-3 sm:p-4">Status</th>
+                  <th class="p-3 sm:p-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-jogadores" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PARTIDAS -->
+        <div id="sub-admin-partidas" class="sub-admin-pane hidden space-y-6">
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+            <h3 class="text-lg font-display font-semibold text-court-ink mb-4" id="titulo-form-partida">Cadastrar Nova Partida</h3>
+            <form onsubmit="salvarPartida(event)" class="space-y-4">
+              <input type="hidden" id="part-id">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Data</label>
+                  <input type="date" id="part-data" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Horário de início (dura 2h)</label>
+                  <input type="time" id="part-hora" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Local</label>
+                  <select id="part-local" required onchange="onSelecionarLocal(this)" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal"></select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Quadra</label>
+                  <select id="part-quadra" required onchange="onSelecionarQuadra(this)" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal"></select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Observações</label>
+                <input type="text" id="part-obs" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-2">Selecione os Participantes:</label>
+                <div id="partida-checkboxes-jogadores" class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-court-bg p-3 rounded-lg border border-court-line max-h-40 overflow-y-auto"></div>
+              </div>
+              <div class="flex justify-end">
+                <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-6 py-2 rounded-lg transition">
+                  Salvar Partida
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[720px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4">Data/Hora</th>
+                  <th class="p-3 sm:p-4">Local</th>
+                  <th class="p-3 sm:p-4">Quadra</th>
+                  <th class="p-3 sm:p-4">Participantes</th>
+                  <th class="p-3 sm:p-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-partidas" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AVALIAÇÕES -->
+        <div id="sub-admin-avaliacoes" class="sub-admin-pane hidden space-y-4">
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-court-line grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-court-ink mb-1">Filtro por Mês</label>
+              <input type="month" id="filtro-mes" onchange="renderizarAbaAvaliacoes()" class="w-full text-sm px-3 py-1.5 border border-court-line rounded-lg outline-none focus:border-court-teal">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-court-ink mb-1">Filtro por Jogador Avaliado</label>
+              <select id="filtro-jogador" onchange="renderizarAbaAvaliacoes()" class="w-full text-sm px-3 py-1.5 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="flex flex-col justify-end">
+              <div class="text-xs font-semibold text-court-muted">Média Geral do Período: <span id="media-geral-painel" class="text-court-teal font-bold text-base">0.00</span></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[640px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4">Partida</th>
+                  <th class="p-3 sm:p-4">Avaliador</th>
+                  <th class="p-3 sm:p-4">Avaliado</th>
+                  <th class="p-3 sm:p-4">Nota</th>
+                  <th class="p-3 sm:p-4">Comentário</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-avaliacoes" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- RANKING -->
+        <div id="sub-admin-ranking" class="sub-admin-pane hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-coral">
+            <h3 class="text-lg font-display font-semibold text-court-ink flex items-center gap-2 mb-2">
+              <i class="fas fa-gift text-court-coral"></i> Apuração do Brinde Mensal
+            </h3>
+            <div id="resultado-brinde-box" class="mt-4 p-4 rounded-lg bg-court-bg"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Classificação Geral (Ranking)</div>
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[560px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4 w-16">Pos.</th>
+                  <th class="p-3 sm:p-4">Jogador</th>
+                  <th class="p-3 sm:p-4 text-center">Média Geral</th>
+                  <th class="p-3 sm:p-4 text-center">Partidas Disputadas</th>
+                  <th class="p-3 sm:p-4 text-center">Avaliações Recebidas</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-ranking" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXPORTAR -->
+        <div id="sub-admin-exportar" class="sub-admin-pane hidden space-y-4">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line">
+            <h3 class="text-lg font-display font-semibold text-court-ink mb-2">Exportar Dados Atualizados</h3>
+            <p class="text-sm text-court-muted mb-4">Baixe um arquivo com os dados atuais (jogadores, partidas e avaliações) para backup ou para atualizar o código.</p>
+            <textarea id="export-textarea" readonly class="w-full h-64 text-xs font-mono p-3 border border-court-line rounded-lg bg-court-bg"></textarea>
+            <button onclick="baixarDados()" class="mt-4 bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+              <i class="fas fa-download mr-2"></i> Baixar JSON
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ---------- Navegação ----------
+  function mudarTela(id){
+    document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  function mudarSubTelaAdmin(sub){
+    document.querySelectorAll('.sub-admin-pane').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('sub-admin-'+sub).classList.remove('hidden');
+    document.querySelectorAll('.menu-admin-btn').forEach(b=>{
+      b.classList.remove('bg-court-teal/10','text-court-teal');
+      b.classList.add('text-gray-600');
+    });
+    const btn = document.getElementById('btn-sub-'+sub);
+    btn.classList.add('bg-court-teal/10','text-court-teal');
+    btn.classList.remove('text-gray-600');
+
+    if(sub==='jogadores') renderizarTabelaJogadores();
+    if(sub==='partidas'){ renderizarCheckboxesJogadores(); renderizarOpcoesLocais(); renderizarOpcoesQuadras(); renderizarTabelaPartidas(); }
+    if(sub==='avaliacoes'){ popularFiltroJogadores(); renderizarAbaAvaliacoes(); }
+    if(sub==='ranking') renderizarRanking();
+    if(sub==='exportar') renderizarExportar();
+  }
+
+  function formatarData(iso){
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function horarioComDuracao(inicio){
+    const [h,m] = inicio.split(':').map(Number);
+    const hf = (h+2) % 24;
+    return `${inicio} - ${String(hf).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+
+  // ---------- Avatares ----------
+  const AVATAR_CORES = ['#1F6F6B','#E8623D','#B8860B','#6B4C9A','#2E86AB','#A23B3B','#4C7A3D','#8A5A44'];
+
+  function corAvatar(nome){
+    let hash = 0;
+    for(let i=0;i<nome.length;i++) hash = nome.charCodeAt(i) + ((hash<<5)-hash);
+    return AVATAR_CORES[Math.abs(hash) % AVATAR_CORES.length];
+  }
+
+  function iniciais(nome){
+    const partes = nome.trim().split(/\s+/);
+    const a = partes[0]?.[0] || '';
+    const b = partes.length>1 ? partes[partes.length-1][0] : '';
+    return (a+b).toUpperCase();
+  }
+
+  function avatarHTML(usuario, tamanho){
+    tamanho = tamanho || 'w-10 h-10 text-sm';
+    if(usuario.foto){
+      return `<img src="${usuario.foto}" class="${tamanho} rounded-full object-cover border border-court-line shrink-0" alt="${usuario.nome}">`;
+    }
+    return `<div class="${tamanho} rounded-full flex items-center justify-center font-bold text-white shrink-0" style="background:${corAvatar(usuario.nome)}">${iniciais(usuario.nome)}</div>`;
+  }
+
+  // ---------- Login ----------
+  function login(event){
+    event.preventDefault();
+    const u = document.getElementById('login-username').value.trim().toLowerCase();
+    const p = document.getElementById('login-password').value;
+    const user = DB.usuarios.find(x=>x.usuario.toLowerCase()===u && x.senha===p && x.ativo);
+    const erro = document.getElementById('login-erro');
+    if(!user){ erro.classList.remove('hidden'); return; }
+    erro.classList.add('hidden');
+    usuarioLogado = user;
+    document.getElementById('main-nav').classList.remove('hidden');
+    document.getElementById('nav-user-name').textContent = user.nome;
+    document.getElementById('nav-user-avatar').innerHTML = avatarHTML(user, 'w-9 h-9 text-xs');
+    if(user.perfil === 'admin'){
+      mudarTela('tela-admin');
+      mudarSubTelaAdmin('jogadores');
+    } else {
+      mudarTela('tela-jogador');
+      renderizarPainelJogador();
+    }
+  }
+
+  function logout(){
+    usuarioLogado = null;
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    mudarTela('tela-login');
+  }
+
+  // ---------- Painel do jogador ----------
+  function renderizarPainelJogador(){
+    document.getElementById('jogador-nome').textContent = usuarioLogado.nome;
+    document.getElementById('jogador-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-14 h-14 text-lg');
+    const cont = document.getElementById('lista-partidas-jogador');
+    const minhas = DB.partidas.filter(p=>p.participantes.includes(usuarioLogado.id))
+      .sort((a,b)=>a.data.localeCompare(b.data));
+
+    if(minhas.length===0){
+      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Nenhuma partida agendada no momento.</div>`;
+      return;
+    }
+
+    cont.innerHTML = minhas.map(p=>{
+      const jaAvaliou = DB.avaliacoes.some(a=>a.partidaId===p.id && a.avaliadorId===usuarioLogado.id);
+      return `
+      <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <p class="font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+          <p class="text-sm text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>
+        </div>
+        ${jaAvaliou
+          ? `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Avaliado</span>`
+          : `<button onclick="abrirAvaliacao(${p.id})" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0 w-full sm:w-auto">Avaliar colegas</button>`
+        }
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- Avaliação ----------
+  function abrirAvaliacao(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    document.getElementById('avaliacao-partida-id').value = partidaId;
+    document.getElementById('avaliacao-data-partida').textContent = `${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}`;
+    const colegas = partida.participantes.filter(id=>id!==usuarioLogado.id);
+    const cont = document.getElementById('lista-colegas-avaliacao');
+
+    cont.innerHTML = colegas.map(id=>{
+      const jog = DB.usuarios.find(u=>u.id===id);
+      return `
+      <div class="bg-white p-4 rounded-xl border border-court-line" data-jogador-id="${id}">
+        <div class="flex items-center gap-3 mb-3">
+          ${avatarHTML(jog, 'w-10 h-10 text-sm')}
+          <p class="font-semibold text-court-ink">${jog.nome}</p>
+        </div>
+        <div class="flex gap-1 mb-3 estrelas" data-valor="0">
+          ${[1,2,3,4,5].map(n=>`<i class="far fa-star text-2xl cursor-pointer text-court-coral" data-nota="${n}" onclick="selecionarNota(this)"></i>`).join('')}
+        </div>
+        <input type="text" placeholder="Comentário (opcional)" class="comentario-input w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+      </div>`;
+    }).join('');
+
+    mudarTela('tela-avaliacao');
+  }
+
+  function selecionarNota(el){
+    const nota = Number(el.dataset.nota);
+    const grupo = el.parentElement;
+    grupo.dataset.valor = nota;
+    [...grupo.children].forEach(star=>{
+      const n = Number(star.dataset.nota);
+      star.classList.toggle('fas', n<=nota);
+      star.classList.toggle('far', n>nota);
+    });
+  }
+
+  function salvarAvaliacao(event){
+    event.preventDefault();
+    const partidaId = Number(document.getElementById('avaliacao-partida-id').value);
+    const cards = document.querySelectorAll('#lista-colegas-avaliacao > div');
+    let algumSemNota = false;
+
+    cards.forEach(card=>{
+      const jogadorId = Number(card.dataset.jogadorId);
+      const nota = Number(card.querySelector('.estrelas').dataset.valor);
+      const comentario = card.querySelector('.comentario-input').value.trim();
+      if(nota===0){ algumSemNota = true; return; }
+      DB.avaliacoes = DB.avaliacoes.filter(a=>!(a.partidaId===partidaId && a.avaliadorId===usuarioLogado.id && a.jogadorId===jogadorId));
+      const novoId = DB.avaliacoes.length ? Math.max(...DB.avaliacoes.map(a=>a.id))+1 : 1;
+      DB.avaliacoes.push({id: novoId, partidaId, avaliadorId: usuarioLogado.id, jogadorId, nota, comentario});
+    });
+
+    if(algumSemNota){
+      alert('Dê uma nota (estrelas) para todos os colegas antes de enviar.');
+      return;
+    }
+
+    mudarTela('tela-jogador');
+    renderizarPainelJogador();
+  }
+
+  // ---------- Admin: Jogadores ----------
+  function renderizarTabelaJogadores(){
+    const tbody = document.getElementById('tabela-admin-jogadores');
+    tbody.innerHTML = DB.usuarios.map(u=>`
+      <tr>
+        <td class="p-4">${avatarHTML(u, 'w-9 h-9 text-xs')}</td>
+        <td class="p-4 font-medium text-court-ink">${u.nome}${u.perfil==='admin' ? ' <span class="ml-1 text-[10px] font-bold uppercase tracking-wider text-court-teal bg-court-teal/10 px-2 py-0.5 rounded-full">Admin</span>' : ''}</td>
+        <td class="p-4 text-court-muted">${u.usuario}</td>
+        <td class="p-4 text-court-muted">${u.senha}</td>
+        <td class="p-4">${u.ativo ? '<span class="text-emerald-600 text-xs font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Ativo</span>' : '<span class="text-gray-400 text-xs font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Inativo</span>'}</td>
+        <td class="p-3 sm:p-4 text-right whitespace-nowrap space-x-3">
+          <button onclick="editarJogador(${u.id})" class="text-court-teal hover:text-court-ink p-1"><i class="fas fa-pen"></i></button>
+          <button onclick="removerJogador(${u.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function salvarJogador(event){
+    event.preventDefault();
+    const id = document.getElementById('jog-id').value;
+    const nome = document.getElementById('jog-nome').value.trim();
+    const usuario = document.getElementById('jog-user').value.trim().toLowerCase();
+    const senha = document.getElementById('jog-senha').value;
+    const foto = document.getElementById('jog-foto').value.trim();
+    const ativo = document.getElementById('jog-ativo').checked;
+
+    if(id){
+      const jog = DB.usuarios.find(u=>u.id===Number(id));
+      Object.assign(jog, {nome, usuario, senha, foto, ativo});
+    } else {
+      const novoId = DB.usuarios.length ? Math.max(...DB.usuarios.map(u=>u.id))+1 : 1;
+      DB.usuarios.push({id: novoId, nome, usuario, senha, foto, perfil:'jogador', ativo});
+    }
+
+    event.target.reset();
+    document.getElementById('jog-id').value = '';
+    document.getElementById('jog-ativo').checked = true;
+    document.getElementById('titulo-form-jogador').textContent = 'Cadastrar Novo Jogador';
+    renderizarTabelaJogadores();
+  }
+
+  function editarJogador(id){
+    const jog = DB.usuarios.find(u=>u.id===id);
+    document.getElementById('jog-id').value = jog.id;
+    document.getElementById('jog-nome').value = jog.nome;
+    document.getElementById('jog-user').value = jog.usuario;
+    document.getElementById('jog-senha').value = jog.senha;
+    document.getElementById('jog-foto').value = jog.foto || '';
+    document.getElementById('jog-ativo').checked = jog.ativo;
+    document.getElementById('titulo-form-jogador').textContent = 'Editar Jogador';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function removerJogador(id){
+    const jog = DB.usuarios.find(u=>u.id===id);
+    if(jog.perfil==='admin'){ alert('Não é possível remover o administrador.'); return; }
+    if(!confirm('Remover este jogador? Essa ação não pode ser desfeita.')) return;
+    DB.usuarios = DB.usuarios.filter(u=>u.id!==id);
+    renderizarTabelaJogadores();
+  }
+
+  // ---------- Admin: Partidas ----------
+  function renderizarCheckboxesJogadores(){
+    const cont = document.getElementById('partida-checkboxes-jogadores');
+    cont.innerHTML = DB.usuarios.filter(u=>u.ativo).map(u=>`
+      <label class="flex items-center gap-2 text-sm cursor-pointer">
+        <input type="checkbox" value="${u.id}" class="checkbox-participante w-4 h-4 text-court-teal rounded"> ${u.nome}
+      </label>`).join('');
+  }
+
+  const VALOR_NOVO = '__novo__';
+
+  function renderizarOpcoesLocais(selecionado){
+    const sel = document.getElementById('part-local');
+    const atual = selecionado || sel.value || DB.locais[0];
+    sel.innerHTML = DB.locais.map(l=>`<option value="${l}">${l}</option>`).join('')
+      + `<option value="${VALOR_NOVO}">+ Cadastrar novo local...</option>`;
+    sel.value = atual;
+  }
+
+  function onSelecionarLocal(sel){
+    if(sel.value !== VALOR_NOVO) return;
+    const nome = prompt('Nome do novo local:');
+    if(nome && nome.trim()){
+      DB.locais.push(nome.trim());
+      renderizarOpcoesLocais(nome.trim());
+    } else {
+      renderizarOpcoesLocais(DB.locais[0]);
+    }
+  }
+
+  function renderizarOpcoesQuadras(selecionado){
+    const sel = document.getElementById('part-quadra');
+    const atual = selecionado || sel.value || DB.quadras[0];
+    sel.innerHTML = DB.quadras.map(q=>`<option value="${q}">${q}</option>`).join('')
+      + `<option value="${VALOR_NOVO}">+ Cadastrar nova quadra...</option>`;
+    sel.value = atual;
+  }
+
+  function onSelecionarQuadra(sel){
+    if(sel.value !== VALOR_NOVO) return;
+    const nome = prompt('Nome/número da nova quadra (ex: Quadra 10):');
+    if(nome && nome.trim()){
+      DB.quadras.push(nome.trim());
+      renderizarOpcoesQuadras(nome.trim());
+    } else {
+      renderizarOpcoesQuadras(DB.quadras[0]);
+    }
+  }
+
+  function salvarPartida(event){
+    event.preventDefault();
+    const id = document.getElementById('part-id').value;
+    const data = document.getElementById('part-data').value;
+    const horario = document.getElementById('part-hora').value;
+    const local = document.getElementById('part-local').value;
+    const quadra = document.getElementById('part-quadra').value;
+    const obs = document.getElementById('part-obs').value.trim();
+    const participantes = [...document.querySelectorAll('.checkbox-participante:checked')].map(c=>Number(c.value));
+
+    if(participantes.length===0){ alert('Selecione ao menos um participante.'); return; }
+
+    if(id){
+      const p = DB.partidas.find(x=>x.id===Number(id));
+      Object.assign(p, {data, horario, local, quadra, obs, participantes});
+    } else {
+      const novoId = DB.partidas.length ? Math.max(...DB.partidas.map(p=>p.id))+1 : 101;
+      DB.partidas.push({id: novoId, data, horario, local, quadra, obs, participantes});
+    }
+
+    event.target.reset();
+    document.getElementById('part-id').value = '';
+    document.getElementById('titulo-form-partida').textContent = 'Cadastrar Nova Partida';
+    renderizarCheckboxesJogadores();
+    renderizarOpcoesLocais(DB.locais[0]);
+    renderizarOpcoesQuadras(DB.quadras[0]);
+    renderizarTabelaPartidas();
+  }
+
+  function editarPartida(id){
+    const p = DB.partidas.find(x=>x.id===id);
+    document.getElementById('part-id').value = p.id;
+    document.getElementById('part-data').value = p.data;
+    document.getElementById('part-hora').value = p.horario;
+    renderizarOpcoesLocais(p.local);
+    renderizarOpcoesQuadras(p.quadra);
+    document.getElementById('part-obs').value = p.obs;
+    renderizarCheckboxesJogadores();
+    p.participantes.forEach(pid=>{
+      const cb = document.querySelector(`.checkbox-participante[value="${pid}"]`);
+      if(cb) cb.checked = true;
+    });
+    document.getElementById('titulo-form-partida').textContent = 'Editar Partida';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function removerPartida(id){
+    if(!confirm('Remover esta partida?')) return;
+    DB.partidas = DB.partidas.filter(p=>p.id!==id);
+    DB.avaliacoes = DB.avaliacoes.filter(a=>a.partidaId!==id);
+    renderizarTabelaPartidas();
+  }
+
+  function renderizarTabelaPartidas(){
+    const tbody = document.getElementById('tabela-admin-partidas');
+    tbody.innerHTML = [...DB.partidas].sort((a,b)=>a.data.localeCompare(b.data)).map(p=>{
+      const nomes = p.participantes.map(id=>DB.usuarios.find(u=>u.id===id)?.nome || '—').join(', ');
+      return `
+      <tr>
+        <td class="p-3 sm:p-4 font-medium text-court-ink whitespace-nowrap">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</td>
+        <td class="p-3 sm:p-4 text-court-muted whitespace-nowrap">${p.local}</td>
+        <td class="p-3 sm:p-4 text-court-muted whitespace-nowrap">${p.quadra || '—'}</td>
+        <td class="p-3 sm:p-4 text-court-muted text-xs">${nomes}</td>
+        <td class="p-3 sm:p-4 text-right whitespace-nowrap space-x-3">
+          <button onclick="editarPartida(${p.id})" class="text-court-teal hover:text-court-ink p-1"><i class="fas fa-pen"></i></button>
+          <button onclick="removerPartida(${p.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ---------- Admin: Avaliações ----------
+  function popularFiltroJogadores(){
+    const sel = document.getElementById('filtro-jogador');
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todos</option>' + DB.usuarios.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('');
+    sel.value = atual;
+  }
+
+  function renderizarAbaAvaliacoes(){
+    const mes = document.getElementById('filtro-mes').value;
+    const jogadorId = document.getElementById('filtro-jogador').value;
+    let lista = DB.avaliacoes.filter(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      if(!partida) return false;
+      if(mes && !partida.data.startsWith(mes)) return false;
+      if(jogadorId && a.jogadorId !== Number(jogadorId)) return false;
+      return true;
+    });
+
+    const tbody = document.getElementById('tabela-admin-avaliacoes');
+    tbody.innerHTML = lista.map(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      const avaliador = DB.usuarios.find(u=>u.id===a.avaliadorId);
+      const avaliado = DB.usuarios.find(u=>u.id===a.jogadorId);
+      return `
+      <tr>
+        <td class="p-4 text-court-muted text-xs">${partida ? formatarData(partida.data) : '—'}</td>
+        <td class="p-4">${avaliador?.nome || '—'}</td>
+        <td class="p-4 font-medium text-court-ink">${avaliado?.nome || '—'}</td>
+        <td class="p-4 text-court-coral font-bold">${a.nota} <i class="fas fa-star text-xs"></i></td>
+        <td class="p-4 text-court-muted text-xs">${a.comentario || '—'}</td>
+      </tr>`;
+    }).join('');
+
+    const media = lista.length ? (lista.reduce((s,a)=>s+a.nota,0)/lista.length).toFixed(2) : '0.00';
+    document.getElementById('media-geral-painel').textContent = media;
+  }
+
+  // ---------- Admin: Ranking ----------
+  function renderizarRanking(){
+    const ranking = DB.usuarios.map(u=>{
+      const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===u.id);
+      const media = recebidas.length ? recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length : 0;
+      const partidasDisputadas = DB.partidas.filter(p=>p.participantes.includes(u.id)).length;
+      return {u, media, partidasDisputadas, avaliacoesRecebidas: recebidas.length};
+    }).filter(r=>r.avaliacoesRecebidas>0).sort((a,b)=>b.media-a.media);
+
+    const tbody = document.getElementById('tabela-admin-ranking');
+    tbody.innerHTML = ranking.map((r,i)=>`
+      <tr>
+        <td class="p-4 font-bold text-court-ink">${i+1}º</td>
+        <td class="p-4 font-medium text-court-ink"><div class="flex items-center gap-3">${avatarHTML(r.u, 'w-8 h-8 text-xs')}<span>${r.u.nome}</span></div></td>
+        <td class="p-4 text-center font-bold text-court-teal">${r.media.toFixed(2)}</td>
+        <td class="p-4 text-center text-court-muted">${r.partidasDisputadas}</td>
+        <td class="p-4 text-center text-court-muted">${r.avaliacoesRecebidas}</td>
+      </tr>`).join('') || `<tr><td colspan="5" class="p-6 text-center text-court-muted text-sm">Ainda não há avaliações registradas.</td></tr>`;
+
+    const box = document.getElementById('resultado-brinde-box');
+    if(ranking.length){
+      const vencedor = ranking[0];
+      box.innerHTML = `
+        <p class="text-sm text-court-muted mb-1">Jogador(a) com a melhor média geral:</p>
+        <p class="text-2xl font-display font-bold text-court-ink">${vencedor.u.nome}</p>
+        <p class="text-court-coral font-bold text-lg">${vencedor.media.toFixed(2)} <i class="fas fa-star text-sm"></i></p>`;
+    } else {
+      box.innerHTML = `<p class="text-sm text-court-muted">Ainda não há avaliações suficientes para apurar o brinde.</p>`;
+    }
+  }
+
+  // ---------- Admin: Exportar ----------
+  function renderizarExportar(){
+    document.getElementById('export-textarea').value = JSON.stringify(DB, null, 2);
+  }
+
+  function baixarDados(){
+    const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'familia-volei-dados.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Inicialização ----------
+  document.getElementById('filtro-mes').value = '2026-07';
+</script>
+
+</body>
+</html>
