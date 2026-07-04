@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1F6F6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Família Vôlei">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Família Vôlei - Avaliação de Jogadores</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -43,6 +49,17 @@
   .net-divider.light {
     background-image: repeating-linear-gradient(90deg, #ffffff55 0 10px, transparent 10px 20px);
   }
+  @keyframes bola-quica {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    20% { transform: translateY(-10px) rotate(-18deg); }
+    40% { transform: translateY(0) rotate(0deg); }
+    60% { transform: translateY(-5px) rotate(10deg); }
+    80% { transform: translateY(0) rotate(0deg); }
+  }
+  .bola-animada {
+    display: inline-block;
+    animation: bola-quica 2.6s ease-in-out infinite;
+  }
 </style>
 </head>
 <body class="bg-court-bg font-body text-court-ink min-h-screen">
@@ -76,9 +93,9 @@
   // caso o documento ainda não exista. Depois disso, quem manda é o Firestore.
   const DADOS_INICIAIS = {
     usuarios: [
-      { id: 1,  nome: "Janaína",  usuario: "janaina",  senha: "Janaina@Volei26",  perfil: "admin",   ativo: true, foto: "" },
+      { id: 1,  nome: "Janaína",  usuario: "janaina",  senha: "Janaina@Volei26",  perfil: "admin",   ativo: true, foto: "", avaliavel: false },
       { id: 2,  nome: "Jairo",    usuario: "jairo",    senha: "Jairo@Volei26",    perfil: "jogador", ativo: true, foto: "" },
-      { id: 3,  nome: "Valtinho", usuario: "valtinho", senha: "Valtinho@Volei26", perfil: "jogador", ativo: true, foto: "" },
+      { id: 3,  nome: "Valtinho", usuario: "valtinho", senha: "Valtinho@Volei26", perfil: "jogador", ativo: true, foto: "", avaliavel: false },
       { id: 4,  nome: "Mariana",  usuario: "mariana",  senha: "Mariana@Volei26",  perfil: "jogador", ativo: true, foto: "" },
       { id: 5,  nome: "Jéssica",  usuario: "jessica",  senha: "Jessica@Volei26",  perfil: "jogador", ativo: true, foto: "" },
       { id: 6,  nome: "José",     usuario: "jose",     senha: "Jose@Volei26",     perfil: "jogador", ativo: true, foto: "" },
@@ -99,11 +116,12 @@
     ],
     locais: ["Praia Clube Sports"],
     quadras: ["Quadra 7", "Quadra 8", "Quadra 9"],
-    avaliacoes: []
+    avaliacoes: [],
+    sugestoes: []
   };
 
   // DB começa vazio; é preenchido assim que o Firestore responder.
-  let DB = { usuarios: [], partidas: [], locais: [], quadras: [], avaliacoes: [] };
+  let DB = { usuarios: [], partidas: [], locais: [], quadras: [], avaliacoes: [], sugestoes: [] };
   let usuarioLogado = null;
   let firebasePronto = false;
 
@@ -125,6 +143,7 @@
         DB.locais     = dados.locais     || [];
         DB.quadras    = dados.quadras    || [];
         DB.avaliacoes = dados.avaliacoes || [];
+        DB.sugestoes  = dados.sugestoes  || [];
         firebasePronto = true;
         atualizarTelaAtual();
       }, err=>{
@@ -159,14 +178,18 @@
     const telaAdminVisivel = !document.getElementById('tela-admin').classList.contains('hidden');
     const telaListaProximoVisivel = !document.getElementById('tela-lista-proximo-jogo').classList.contains('hidden');
     const telaVisaoGeralVisivel = !document.getElementById('tela-visao-geral').classList.contains('hidden');
+    const telaSugestoesVisivel = !document.getElementById('tela-sugestoes').classList.contains('hidden');
 
     if(telaListaProximoVisivel) renderizarListaProximoJogo();
     if(telaVisaoGeralVisivel) renderizarVisaoGeral();
+    if(telaSugestoesVisivel) renderizarSugestoes();
 
     if(telaJogadorVisivel){
       const subJogVisivel = [...document.querySelectorAll('.sub-jogador-pane')].find(p=>!p.classList.contains('hidden'));
       if(subJogVisivel && subJogVisivel.id==='sub-jogador-ranking'){
         renderizarRankingJogador();
+      } else if(subJogVisivel && subJogVisivel.id==='sub-jogador-avaliacoes'){
+        renderizarMinhasAvaliacoes();
       } else {
         renderizarPainelJogador();
       }
@@ -189,17 +212,20 @@
 
 <header id="main-nav" class="bg-court-teal text-white shadow-md hidden mb-6 sm:mb-8">
   <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
-    <span class="text-base sm:text-xl font-display font-semibold flex items-center gap-2 truncate">
+    <button onclick="irParaTelaPrincipal()" class="text-base sm:text-xl font-display font-semibold flex items-center gap-2 truncate hover:opacity-90 transition">
       <i class="fas fa-volleyball shrink-0"></i> <span class="truncate">Família Vôlei</span>
-    </span>
+    </button>
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <div id="nav-user-avatar"></div>
-      <span id="nav-user-name" class="font-medium text-sm hidden sm:inline"></span>
+      <span id="nav-user-name" class="font-medium text-xs sm:text-sm max-w-[70px] sm:max-w-none truncate"></span>
       <button onclick="abrirVisaoGeral()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
         <i class="fas fa-house"></i><span class="hidden sm:inline"> Visão Geral</span>
       </button>
       <button onclick="abrirListaProximoJogo()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
         <i class="fas fa-list-check"></i><span class="hidden sm:inline"> Próximo Jogo</span>
+      </button>
+      <button onclick="abrirSugestoes()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
+        <i class="fas fa-comment-dots"></i><span class="hidden sm:inline"> Sugestões</span>
       </button>
       <button onclick="logout()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
         <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline"> Sair</span>
@@ -214,7 +240,7 @@
   <!-- VISÃO GERAL -->
   <section id="tela-visao-geral" class="hidden max-w-2xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-      <button onclick="mudarTela(telaAnteriorParaVoltar)" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
         <i class="fas fa-arrow-left"></i> Voltar
       </button>
       <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
@@ -226,24 +252,35 @@
 
   <!-- LOGIN -->
   <section id="tela-login" class="max-w-md mx-auto mt-8 sm:mt-16 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-court-line">
-    <div class="text-center mb-8">
+    <div class="text-center mb-6">
       <div class="inline-flex items-center justify-center w-16 h-16 bg-court-teal/10 text-court-teal rounded-full mb-4">
-        <i class="fas fa-volleyball text-3xl"></i>
+        <i class="fas fa-volleyball text-3xl bola-animada"></i>
       </div>
       <h1 class="text-3xl font-display font-semibold text-court-ink">Família Vôlei</h1>
-      <p class="text-court-muted text-sm mt-1">Painel de avaliação entre jogadores</p>
-      <div class="net-divider mx-auto mt-4 w-24"></div>
+      <p class="text-court-muted text-sm mt-1 leading-snug">Nosso espaço, nossos jogos,<br>nossa família.</p>
+
+      <div class="flex items-center justify-center gap-4 mt-5">
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-calendar-alt"></i></div>
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-list-check"></i></div>
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-star"></i></div>
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-coins"></i></div>
+      </div>
+      <p class="text-xs text-court-muted mt-2">Partidas · Presença · Avaliações · Pagamentos</p>
     </div>
 
     <form onsubmit="login(event)" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-court-ink mb-1">Usuário</label>
-        <input type="text" id="login-username" required class="w-full px-3 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+        <div class="relative">
+          <span class="absolute left-0 top-0 h-full px-3 flex items-center text-court-muted"><i class="fas fa-user"></i></span>
+          <input type="text" id="login-username" required placeholder="Digite seu usuário" class="w-full pl-10 pr-3 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+        </div>
       </div>
       <div>
         <label class="block text-sm font-medium text-court-ink mb-1">Senha</label>
         <div class="relative">
-          <input type="password" id="login-password" required class="w-full px-3 py-2 pr-10 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+          <span class="absolute left-0 top-0 h-full px-3 flex items-center text-court-muted"><i class="fas fa-lock"></i></span>
+          <input type="password" id="login-password" required placeholder="Digite sua senha" class="w-full pl-10 pr-10 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
           <button type="button" onclick="alternarSenhaVisivel()" tabindex="-1" class="absolute right-0 top-0 h-full px-3 text-court-muted hover:text-court-ink">
             <i id="icone-olho-senha" class="far fa-eye"></i>
           </button>
@@ -256,6 +293,15 @@
         Entrar
       </button>
     </form>
+
+    <div id="botao-instalar-app-container" class="hidden mt-5 pt-4 border-t border-court-line text-center">
+      <button id="botao-instalar-app" onclick="instalarApp()" type="button" class="w-full bg-court-teal/10 hover:bg-court-teal/20 text-court-teal font-semibold py-2.5 rounded-lg transition text-sm">
+        <i class="fas fa-download mr-2"></i> Baixar / Instalar aplicativo
+      </button>
+      <p id="dica-instalar-ios" class="hidden text-xs text-court-muted mt-2">
+        No iPhone: toque em <i class="fas fa-arrow-up-from-bracket"></i> Compartilhar e depois em "Adicionar à Tela de Início".
+      </p>
+    </div>
   </section>
 
   <!-- PAINEL JOGADOR -->
@@ -274,6 +320,9 @@
       </button>
       <button onclick="mudarSubTelaJogador('ranking')" id="btn-sub-jog-ranking" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
         <i class="fas fa-trophy mr-1"></i> Notas Gerais
+      </button>
+      <button onclick="mudarSubTelaJogador('avaliacoes')" id="btn-sub-jog-avaliacoes" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
+        <i class="fas fa-clock-rotate-left mr-1"></i> Minhas Avaliações
       </button>
     </div>
 
@@ -314,12 +363,26 @@
         </div>
       </div>
     </div>
+
+    <div id="sub-jogador-avaliacoes" class="sub-jogador-pane hidden space-y-4">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line flex items-center justify-between gap-4">
+        <p class="text-sm text-court-muted">Histórico de todas as avaliações que você já recebeu dos seus colegas.</p>
+        <div class="text-right shrink-0">
+          <p class="text-xs font-semibold text-court-muted uppercase tracking-wider">Sua Média</p>
+          <p class="text-2xl font-display font-bold text-court-teal" id="minha-media-avaliacoes">0.00</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Avaliações Recebidas</div>
+        <div id="lista-minhas-avaliacoes" class="divide-y divide-court-line"></div>
+      </div>
+    </div>
   </section>
 
   <!-- LISTAGEM PRÓXIMO JOGO (acesso de qualquer usuário logado) -->
   <section id="tela-lista-proximo-jogo" class="hidden max-w-2xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-      <button onclick="mudarTela(telaAnteriorParaVoltar)" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
         <i class="fas fa-arrow-left"></i> Voltar
       </button>
       <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
@@ -329,10 +392,37 @@
     <div id="conteudo-lista-proximo-jogo"></div>
   </section>
 
+  <!-- SUGESTÕES (acesso de qualquer usuário logado) -->
+  <section id="tela-sugestoes" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
+        <i class="fas fa-comment-dots mr-1"></i> Sugestões
+      </span>
+    </div>
+
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-6">
+      <h3 class="text-sm font-semibold text-court-ink mb-3">Enviar uma sugestão</h3>
+      <form onsubmit="enviarSugestao(event)" class="space-y-3">
+        <textarea id="sugestao-texto" required rows="3" placeholder="Conte sua ideia, elogio ou o que podemos melhorar..." class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal resize-none"></textarea>
+        <button type="submit" class="w-full bg-court-teal hover:brightness-95 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          <i class="fas fa-paper-plane mr-2"></i> Enviar Sugestão
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+      <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Sugestões da Turma</div>
+      <div id="lista-sugestoes" class="divide-y divide-court-line"></div>
+    </div>
+  </section>
+
   <!-- AVALIAÇÃO -->
   <section id="tela-avaliacao" class="hidden max-w-2xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-      <button onclick="mudarTela('tela-jogador')" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
         <i class="fas fa-arrow-left"></i> Voltar ao painel
       </button>
       <span id="avaliacao-data-partida" class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold"></span>
@@ -391,18 +481,21 @@
               </div>
               <div>
                 <label class="block text-xs font-medium text-court-ink mb-1">Foto — opcional</label>
-                <input type="text" id="jog-foto" placeholder="deixe em branco para usar fotos/usuario.jpg" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                <input type="text" id="jog-foto" placeholder="deixe em branco para usar usuario.jpg" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
               </div>
-              <div class="flex items-center gap-4 h-10 sm:col-span-4 sm:justify-end">
+              <div class="flex items-center gap-4 h-10 sm:col-span-4 sm:justify-end flex-wrap">
                 <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer">
                   <input type="checkbox" id="jog-ativo" checked class="w-4 h-4 text-court-teal rounded"> Ativo
+                </label>
+                <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer" title="Organizadores não recebem avaliações e não concorrem ao brinde">
+                  <input type="checkbox" id="jog-coordenador" class="w-4 h-4 text-court-teal rounded"> Organizador (não avaliado / não concorre)
                 </label>
                 <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
                   Salvar
                 </button>
               </div>
             </form>
-            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto cadastrada, o sistema procura automaticamente o arquivo <code>fotos/&lt;usuario&gt;.jpg</code> no GitHub (ex: <code>fotos/jairo.jpg</code>). Se o arquivo não existir, aparece um avatar colorido com as iniciais.</p>
+            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto cadastrada, o sistema procura automaticamente o arquivo <code>&lt;usuario&gt;.jpg</code> na raiz do repositório do GitHub (ex: <code>jairo.jpg</code>, ao lado do <code>index.html</code>). Se o arquivo não existir, aparece um avatar colorido com as iniciais.</p>
           </div>
 
           <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
@@ -567,7 +660,39 @@
 
 <script>
   // ---------- Navegação ----------
-  let telaAnteriorParaVoltar = 'tela-jogador';
+  // Pilha (histórico) de telas visitadas, para o botão "Voltar" sempre
+  // retornar para o lugar certo, não importa de onde a tela foi aberta.
+  let pilhaNavegacao = [];
+
+  function telaHomePadrao(){
+    return (usuarioLogado && usuarioLogado.perfil === 'admin') ? 'tela-admin' : 'tela-jogador';
+  }
+
+  function empilharTelaAtual(){
+    const secaoAtual = document.querySelector('main > section:not(.hidden)');
+    if(secaoAtual) pilhaNavegacao.push(secaoAtual.id);
+  }
+
+  // Troca de tela "de nível" (empilhando o histórico) + re-renderiza o conteúdo certo
+  function irParaTela(id){
+    mudarTela(id);
+    if(id==='tela-visao-geral') renderizarVisaoGeral();
+    else if(id==='tela-lista-proximo-jogo') renderizarListaProximoJogo();
+    else atualizarTelaAtual();
+  }
+
+  function voltarTela(){
+    let destino = pilhaNavegacao.pop();
+    if(!destino) destino = telaHomePadrao();
+    irParaTela(destino);
+  }
+
+  // Clique no logo "Família Vôlei": sempre volta para a aba principal do usuário
+  function irParaTelaPrincipal(){
+    if(!usuarioLogado) return;
+    pilhaNavegacao = [];
+    irParaTela(telaHomePadrao());
+  }
 
   function mudarTela(id){
     document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
@@ -577,7 +702,7 @@
   function mudarSubTelaJogador(sub){
     document.querySelectorAll('.sub-jogador-pane').forEach(p=>p.classList.add('hidden'));
     document.getElementById('sub-jogador-'+sub).classList.remove('hidden');
-    document.querySelectorAll('#btn-sub-jog-partidas, #btn-sub-jog-ranking').forEach(b=>{
+    document.querySelectorAll('#btn-sub-jog-partidas, #btn-sub-jog-ranking, #btn-sub-jog-avaliacoes').forEach(b=>{
       b.classList.remove('bg-court-teal/10','text-court-teal');
       b.classList.add('text-gray-600');
     });
@@ -587,6 +712,7 @@
 
     if(sub==='partidas') renderizarPainelJogador();
     if(sub==='ranking') renderizarRankingJogador();
+    if(sub==='avaliacoes') renderizarMinhasAvaliacoes();
   }
 
   function mudarSubTelaAdmin(sub){
@@ -638,8 +764,8 @@
     tamanho = tamanho || 'w-10 h-10 text-sm';
     const cor = corAvatar(usuario.nome);
     const ini = iniciais(usuario.nome);
-    // Se não houver foto cadastrada manualmente, tenta o arquivo local fotos/<usuario>.jpg
-    const src = (usuario.foto && usuario.foto.trim()) ? usuario.foto.trim() : `fotos/${usuario.usuario}.jpg`;
+    // Se não houver foto cadastrada manualmente, tenta o arquivo na raiz do site: <usuario>.jpg
+    const src = (usuario.foto && usuario.foto.trim()) ? usuario.foto.trim() : `${usuario.usuario}.jpg`;
     return `<img src="${src}" data-cor="${cor}" data-iniciais="${ini}" class="avatar-foto ${tamanho} rounded-full object-cover border border-court-line shrink-0" alt="${usuario.nome}">`;
   }
 
@@ -678,6 +804,7 @@
     if(!user){ erro.classList.remove('hidden'); return; }
     erro.classList.add('hidden');
     usuarioLogado = user;
+    pilhaNavegacao = [];
     document.getElementById('main-nav').classList.remove('hidden');
     document.getElementById('nav-user-name').textContent = user.nome;
     document.getElementById('nav-user-avatar').innerHTML = avatarHTML(user, 'w-9 h-9 text-xs');
@@ -692,6 +819,7 @@
 
   function logout(){
     usuarioLogado = null;
+    pilhaNavegacao = [];
     document.getElementById('main-nav').classList.add('hidden');
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
@@ -767,7 +895,11 @@
     const partida = DB.partidas.find(p=>p.id===partidaId);
     document.getElementById('avaliacao-partida-id').value = partidaId;
     document.getElementById('avaliacao-data-partida').textContent = `${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}`;
-    const colegas = partida.participantes.filter(id=>id!==usuarioLogado.id);
+    const colegas = partida.participantes.filter(id=>{
+      if(id===usuarioLogado.id) return false;
+      const jog = DB.usuarios.find(u=>u.id===id);
+      return jog && jog.avaliavel !== false;
+    });
     const cont = document.getElementById('lista-colegas-avaliacao');
 
     cont.innerHTML = colegas.map(id=>{
@@ -786,6 +918,7 @@
       </div>`;
     }).join('');
 
+    empilharTelaAtual();
     mudarTela('tela-avaliacao');
   }
 
@@ -823,14 +956,14 @@
     }
 
     salvarEstado();
+    pilhaNavegacao.pop();
     mudarTela('tela-jogador');
     mudarSubTelaJogador('partidas');
   }
 
   // ---------- Visão Geral (tela de início rápido, com botão de voltar) ----------
   function abrirVisaoGeral(){
-    const secaoAtual = document.querySelector('main > section:not(.hidden)');
-    if(secaoAtual && secaoAtual.id !== 'tela-visao-geral') telaAnteriorParaVoltar = secaoAtual.id;
+    empilharTelaAtual();
     mudarTela('tela-visao-geral');
     renderizarVisaoGeral();
   }
@@ -854,16 +987,18 @@
     let blocoPreLista = '';
     if(partida){
       const confirmados = partida.confirmados || [];
+      const pagos = partida.pagos || [];
       if(confirmados.length){
         const nomes = confirmados.map(id=>{
           const u = DB.usuarios.find(x=>x.id===id);
           if(!u) return '';
-          return `<div class="flex items-center gap-2 p-2 rounded-lg bg-court-bg border border-court-line">${avatarHTML(u,'w-7 h-7 text-xs')}<span class="text-sm font-medium text-court-ink truncate">${u.nome}</span></div>`;
+          const pago = pagos.includes(id);
+          return `<div class="flex items-center gap-2 p-2 rounded-lg bg-court-bg border border-court-line">${avatarHTML(u,'w-7 h-7 text-xs')}<span class="text-sm font-medium text-court-ink truncate flex-1">${u.nome}</span>${pago ? `<span class="text-base leading-none" title="Pagamento confirmado">✅</span>` : ''}</div>`;
         }).join('');
         blocoPreLista = `
           <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider"><i class="fas fa-list-check mr-1"></i> Pré-lista (${confirmados.length}/12)</h3>
+              <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider"><i class="fas fa-list-check mr-1"></i> Pré-lista (${confirmados.length}/12) <span class="text-emerald-600 normal-case">· ${pagos.length} pagaram ✅</span></h3>
               <button onclick="abrirListaProximoJogo()" class="text-xs font-semibold text-court-teal hover:underline">Ver / confirmar presença</button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${nomes}</div>
@@ -889,8 +1024,7 @@
   }
 
   function abrirListaProximoJogo(){
-    const secaoAtual = document.querySelector('main > section:not(.hidden)');
-    if(secaoAtual) telaAnteriorParaVoltar = secaoAtual.id;
+    empilharTelaAtual();
     mudarTela('tela-lista-proximo-jogo');
     renderizarListaProximoJogo();
   }
@@ -908,17 +1042,27 @@
     const jaConfirmado = usuarioLogado && partida.confirmados.includes(usuarioLogado.id);
     const vagas = 12 - partida.confirmados.length;
 
+    if(!partida.pagos) partida.pagos = [];
+    const ehAdmin = usuarioLogado && usuarioLogado.perfil==='admin';
+
     const slots = Array.from({length:12}, (_, i)=>{
       const uid = partida.confirmados[i];
       if(uid){
         const u = DB.usuarios.find(x=>x.id===uid);
         const podeRemover = usuarioLogado && (usuarioLogado.id===uid || usuarioLogado.perfil==='admin');
+        const pago = partida.pagos.includes(uid);
+        const controlePagamento = ehAdmin
+          ? `<button onclick="alternarPagamento(${partida.id},${uid})" title="${pago ? 'Pagamento confirmado — clique para desmarcar' : 'Marcar como pago'}" class="text-lg leading-none ${pago ? '' : 'grayscale opacity-30'} hover:opacity-100 transition">✅</button>`
+          : (pago ? `<span class="text-lg leading-none" title="Pagamento confirmado">✅</span>` : '');
         return `
         <div class="flex items-center gap-2 p-2.5 rounded-lg bg-court-bg border border-court-line">
           <span class="text-xs font-bold text-court-muted w-5 shrink-0">${i+1}.</span>
           ${avatarHTML(u || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
           <span class="text-sm font-medium text-court-ink truncate">${u ? u.nome : '—'}</span>
-          ${podeRemover ? `<button onclick="removerConfirmacao(${partida.id},${uid})" class="ml-auto text-red-400 hover:text-red-600 text-xs p-1"><i class="fas fa-times"></i></button>` : ''}
+          <div class="ml-auto flex items-center gap-2 shrink-0">
+            ${controlePagamento}
+            ${podeRemover ? `<button onclick="removerConfirmacao(${partida.id},${uid})" class="text-red-400 hover:text-red-600 text-xs p-1"><i class="fas fa-times"></i></button>` : ''}
+          </div>
         </div>`;
       }
       return `
@@ -941,7 +1085,7 @@
         <p class="text-xs font-bold text-court-muted uppercase tracking-wider mb-1">Próximo Jogo</p>
         <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
         <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
-        <p class="text-sm font-semibold text-court-teal mt-3">${partida.confirmados.length}/12 confirmados</p>
+        <p class="text-sm font-semibold text-court-teal mt-3">${partida.confirmados.length}/12 confirmados <span class="text-court-muted font-normal">·</span> <span class="text-emerald-600">${partida.pagos.length} pagaram ✅</span></p>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">${slots}</div>
       ${botao}
@@ -959,10 +1103,87 @@
     renderizarListaProximoJogo();
   }
 
+  // ---------- Sugestões (qualquer usuário logado pode enviar e ver) ----------
+  function abrirSugestoes(){
+    empilharTelaAtual();
+    mudarTela('tela-sugestoes');
+    renderizarSugestoes();
+  }
+
+  function renderizarSugestoes(){
+    const cont = document.getElementById('lista-sugestoes');
+    if(!cont) return;
+    const lista = [...(DB.sugestoes || [])].sort((a,b)=>b.id-a.id);
+
+    if(!lista.length){
+      cont.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Nenhuma sugestão enviada ainda. Seja o primeiro!</div>`;
+      return;
+    }
+
+    cont.innerHTML = lista.map(s=>{
+      const autor = DB.usuarios.find(u=>u.id===s.autorId);
+      const podeRemover = usuarioLogado && (usuarioLogado.perfil==='admin' || usuarioLogado.id===s.autorId);
+      return `
+      <div class="p-4 flex items-start gap-3">
+        ${avatarHTML(autor || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-court-ink">${autor ? autor.nome : 'Usuário removido'}</p>
+          <p class="text-sm text-court-ink mt-1 whitespace-pre-wrap break-words">${s.texto}</p>
+          <p class="text-xs text-court-muted mt-1">${s.data || ''}</p>
+        </div>
+        ${podeRemover ? `<button onclick="removerSugestao(${s.id})" class="text-red-400 hover:text-red-600 p-1 shrink-0"><i class="fas fa-trash"></i></button>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function enviarSugestao(event){
+    event.preventDefault();
+    if(!usuarioLogado) return;
+    const campo = document.getElementById('sugestao-texto');
+    const texto = campo.value.trim();
+    if(!texto) return;
+
+    if(!DB.sugestoes) DB.sugestoes = [];
+    const novoId = DB.sugestoes.length ? Math.max(...DB.sugestoes.map(s=>s.id))+1 : 1;
+    const agora = new Date();
+    DB.sugestoes.push({
+      id: novoId,
+      autorId: usuarioLogado.id,
+      texto,
+      data: agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+    });
+    salvarEstado();
+    campo.value = '';
+    renderizarSugestoes();
+  }
+
+  function removerSugestao(id){
+    if(!confirm('Excluir esta sugestão?')) return;
+    DB.sugestoes = (DB.sugestoes || []).filter(s=>s.id!==id);
+    salvarEstado();
+    renderizarSugestoes();
+  }
+
   function removerConfirmacao(partidaId, userId){
     const partida = DB.partidas.find(p=>p.id===partidaId);
     if(!partida) return;
     partida.confirmados = (partida.confirmados || []).filter(id=>id!==userId);
+    partida.pagos = (partida.pagos || []).filter(id=>id!==userId);
+    salvarEstado();
+    renderizarListaProximoJogo();
+  }
+
+  // Admin marca/desmarca o pagamento de um jogador confirmado no próximo jogo
+  function alternarPagamento(partidaId, userId){
+    if(!usuarioLogado || usuarioLogado.perfil!=='admin') return;
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    if(!partida.pagos) partida.pagos = [];
+    if(partida.pagos.includes(userId)){
+      partida.pagos = partida.pagos.filter(id=>id!==userId);
+    } else {
+      partida.pagos.push(userId);
+    }
     salvarEstado();
     renderizarListaProximoJogo();
   }
@@ -973,7 +1194,7 @@
     tbody.innerHTML = DB.usuarios.map(u=>`
       <tr>
         <td class="p-4">${avatarHTML(u, 'w-9 h-9 text-xs')}</td>
-        <td class="p-4 font-medium text-court-ink">${u.nome}${u.perfil==='admin' ? ' <span class="ml-1 text-[10px] font-bold uppercase tracking-wider text-court-teal bg-court-teal/10 px-2 py-0.5 rounded-full">Admin</span>' : ''}</td>
+        <td class="p-4 font-medium text-court-ink">${u.nome}${u.perfil==='admin' ? ' <span class="ml-1 text-[10px] font-bold uppercase tracking-wider text-court-teal bg-court-teal/10 px-2 py-0.5 rounded-full">Admin</span>' : ''}${u.avaliavel===false ? ' <span class="ml-1 text-[10px] font-bold uppercase tracking-wider text-court-coral bg-court-coral/10 px-2 py-0.5 rounded-full">Organizador</span>' : ''}</td>
         <td class="p-4 text-court-muted">${u.usuario}</td>
         <td class="p-4 text-court-muted">${u.senha}</td>
         <td class="p-4">${u.ativo ? '<span class="text-emerald-600 text-xs font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Ativo</span>' : '<span class="text-gray-400 text-xs font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Inativo</span>'}</td>
@@ -992,19 +1213,21 @@
     const senha = document.getElementById('jog-senha').value;
     const foto = document.getElementById('jog-foto').value.trim();
     const ativo = document.getElementById('jog-ativo').checked;
+    const avaliavel = !document.getElementById('jog-coordenador').checked;
 
     if(id){
       const jog = DB.usuarios.find(u=>u.id===Number(id));
-      Object.assign(jog, {nome, usuario, senha, foto, ativo});
+      Object.assign(jog, {nome, usuario, senha, foto, ativo, avaliavel});
     } else {
       const novoId = DB.usuarios.length ? Math.max(...DB.usuarios.map(u=>u.id))+1 : 1;
-      DB.usuarios.push({id: novoId, nome, usuario, senha, foto, perfil:'jogador', ativo});
+      DB.usuarios.push({id: novoId, nome, usuario, senha, foto, perfil:'jogador', ativo, avaliavel});
     }
 
     salvarEstado();
     event.target.reset();
     document.getElementById('jog-id').value = '';
     document.getElementById('jog-ativo').checked = true;
+    document.getElementById('jog-coordenador').checked = false;
     document.getElementById('titulo-form-jogador').textContent = 'Cadastrar Novo Jogador';
     renderizarTabelaJogadores();
   }
@@ -1017,6 +1240,7 @@
     document.getElementById('jog-senha').value = jog.senha;
     document.getElementById('jog-foto').value = jog.foto || '';
     document.getElementById('jog-ativo').checked = jog.ativo;
+    document.getElementById('jog-coordenador').checked = jog.avaliavel === false;
     document.getElementById('titulo-form-jogador').textContent = 'Editar Jogador';
     window.scrollTo({top:0, behavior:'smooth'});
   }
@@ -1204,7 +1428,7 @@
 
   // ---------- Ranking (usado pelo Admin e também pelo jogador em "Notas Gerais") ----------
   function construirRanking(){
-    return DB.usuarios.map(u=>{
+    return DB.usuarios.filter(u=>u.avaliavel !== false).map(u=>{
       const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===u.id);
       const media = recebidas.length ? recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length : 0;
       const partidasDisputadas = DB.partidas.filter(p=>p.participantes.includes(u.id)).length;
@@ -1251,6 +1475,45 @@
       </tr>`).join('') || `<tr><td colspan="4" class="p-6 text-center text-court-muted text-sm">Ainda não há avaliações registradas.</td></tr>`;
   }
 
+  // Histórico de avaliações recebidas pelo próprio jogador logado
+  function renderizarMinhasAvaliacoes(){
+    const cont = document.getElementById('lista-minhas-avaliacoes');
+    if(!cont || !usuarioLogado) return;
+
+    const recebidas = DB.avaliacoes
+      .filter(a=>a.jogadorId===usuarioLogado.id)
+      .map(a=>({...a, partida: DB.partidas.find(p=>p.id===a.partidaId)}))
+      .sort((a,b)=>{
+        const da = a.partida ? a.partida.data : '';
+        const db_ = b.partida ? b.partida.data : '';
+        return db_.localeCompare(da);
+      });
+
+    const media = recebidas.length ? (recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length).toFixed(2) : '0.00';
+    document.getElementById('minha-media-avaliacoes').textContent = media;
+
+    if(!recebidas.length){
+      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Você ainda não recebeu nenhuma avaliação.</div>`;
+      return;
+    }
+
+    cont.innerHTML = recebidas.map(a=>{
+      const avaliador = DB.usuarios.find(u=>u.id===a.avaliadorId);
+      return `
+      <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div class="flex items-center gap-2 sm:w-40 shrink-0">
+          ${avatarHTML(avaliador || {nome:'—', usuario:'x'}, 'w-7 h-7 text-xs')}
+          <span class="text-xs text-court-muted truncate">${avaliador ? avaliador.nome : '—'}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs text-court-muted">${a.partida ? formatarData(a.partida.data) : '—'}</p>
+          <p class="text-sm text-court-ink truncate">${a.comentario || '<span class="italic text-court-muted">Sem comentário</span>'}</p>
+        </div>
+        <div class="text-court-coral font-bold text-lg shrink-0 self-start sm:self-auto">${a.nota}<span class="text-xs text-court-muted">/10</span></div>
+      </div>`;
+    }).join('');
+  }
+
   // ---------- Admin: Exportar ----------
   function renderizarExportar(){
     document.getElementById('export-textarea').value = JSON.stringify(DB, null, 2);
@@ -1265,6 +1528,50 @@
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  // ---------- Instalar como aplicativo (PWA) ----------
+  let promptDeInstalacao = null;
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(err=>console.warn('Service worker não registrado:', err));
+    });
+  }
+
+  function appJaInstalado(){
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  window.addEventListener('beforeinstallprompt', (event)=>{
+    event.preventDefault();
+    promptDeInstalacao = event;
+    if(!appJaInstalado()){
+      document.getElementById('botao-instalar-app-container').classList.remove('hidden');
+    }
+  });
+
+  function instalarApp(){
+    if(!promptDeInstalacao) return;
+    promptDeInstalacao.prompt();
+    promptDeInstalacao.userChoice.finally(()=>{
+      promptDeInstalacao = null;
+      document.getElementById('botao-instalar-app-container').classList.add('hidden');
+    });
+  }
+
+  window.addEventListener('appinstalled', ()=>{
+    document.getElementById('botao-instalar-app-container').classList.add('hidden');
+  });
+
+  // iOS Safari não dispara "beforeinstallprompt": mostramos a dica manual
+  (function(){
+    const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if(ehIOS && !appJaInstalado()){
+      document.getElementById('botao-instalar-app-container').classList.remove('hidden');
+      document.getElementById('botao-instalar-app').classList.add('hidden');
+      document.getElementById('dica-instalar-ios').classList.remove('hidden');
+    }
+  })();
 
   // ---------- Inicialização ----------
   document.getElementById('filtro-mes').value = '2026-07';
