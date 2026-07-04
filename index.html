@@ -157,6 +157,11 @@
     }
     const telaJogadorVisivel = !document.getElementById('tela-jogador').classList.contains('hidden');
     const telaAdminVisivel = !document.getElementById('tela-admin').classList.contains('hidden');
+    const telaListaProximoVisivel = !document.getElementById('tela-lista-proximo-jogo').classList.contains('hidden');
+    const telaVisaoGeralVisivel = !document.getElementById('tela-visao-geral').classList.contains('hidden');
+
+    if(telaListaProximoVisivel) renderizarListaProximoJogo();
+    if(telaVisaoGeralVisivel) renderizarVisaoGeral();
 
     if(telaJogadorVisivel){
       const subJogVisivel = [...document.querySelectorAll('.sub-jogador-pane')].find(p=>!p.classList.contains('hidden'));
@@ -190,6 +195,12 @@
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <div id="nav-user-avatar"></div>
       <span id="nav-user-name" class="font-medium text-sm hidden sm:inline"></span>
+      <button onclick="abrirVisaoGeral()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
+        <i class="fas fa-house"></i><span class="hidden sm:inline"> Visão Geral</span>
+      </button>
+      <button onclick="abrirListaProximoJogo()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
+        <i class="fas fa-list-check"></i><span class="hidden sm:inline"> Próximo Jogo</span>
+      </button>
       <button onclick="logout()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
         <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline"> Sair</span>
       </button>
@@ -199,6 +210,19 @@
 </header>
 
 <main class="container mx-auto px-3 sm:px-4 max-w-6xl pb-16">
+
+  <!-- VISÃO GERAL -->
+  <section id="tela-visao-geral" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="mudarTela(telaAnteriorParaVoltar)" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
+        <i class="fas fa-house mr-1"></i> Visão Geral
+      </span>
+    </div>
+    <div id="conteudo-visao-geral" class="space-y-6"></div>
+  </section>
 
   <!-- LOGIN -->
   <section id="tela-login" class="max-w-md mx-auto mt-8 sm:mt-16 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-court-line">
@@ -253,10 +277,22 @@
       </button>
     </div>
 
-    <div id="sub-jogador-partidas" class="sub-jogador-pane">
+    <div id="sub-jogador-partidas" class="sub-jogador-pane space-y-6">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-coral">
+        <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider mb-2"><i class="fas fa-calendar-check mr-1"></i> Próxima Partida</h3>
+        <div id="proxima-partida-box"></div>
+      </div>
+
       <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
         <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Minhas Partidas</div>
         <div id="lista-partidas-jogador" class="divide-y divide-court-line"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink flex items-center gap-2">
+          <i class="fas fa-clock-rotate-left"></i> Histórico de Partidas
+        </div>
+        <div id="lista-historico-jogador" class="divide-y divide-court-line"></div>
       </div>
     </div>
 
@@ -278,6 +314,19 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- LISTAGEM PRÓXIMO JOGO (acesso de qualquer usuário logado) -->
+  <section id="tela-lista-proximo-jogo" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="mudarTela(telaAnteriorParaVoltar)" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
+        <i class="fas fa-list-check mr-1"></i> Lista de Presença
+      </span>
+    </div>
+    <div id="conteudo-lista-proximo-jogo"></div>
   </section>
 
   <!-- AVALIAÇÃO -->
@@ -341,8 +390,8 @@
                 <input type="text" id="jog-senha" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
               </div>
               <div>
-                <label class="block text-xs font-medium text-court-ink mb-1">Foto (URL) — opcional</label>
-                <input type="text" id="jog-foto" placeholder="https://..." class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                <label class="block text-xs font-medium text-court-ink mb-1">Foto — opcional</label>
+                <input type="text" id="jog-foto" placeholder="deixe em branco para usar fotos/usuario.jpg" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
               </div>
               <div class="flex items-center gap-4 h-10 sm:col-span-4 sm:justify-end">
                 <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer">
@@ -353,7 +402,7 @@
                 </button>
               </div>
             </form>
-            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto, cada jogador aparece com um avatar colorido de iniciais gerado automaticamente.</p>
+            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto cadastrada, o sistema procura automaticamente o arquivo <code>fotos/&lt;usuario&gt;.jpg</code> no GitHub (ex: <code>fotos/jairo.jpg</code>). Se o arquivo não existir, aparece um avatar colorido com as iniciais.</p>
           </div>
 
           <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
@@ -461,6 +510,7 @@
                   <th class="p-3 sm:p-4">Avaliado</th>
                   <th class="p-3 sm:p-4">Nota</th>
                   <th class="p-3 sm:p-4">Comentário</th>
+                  <th class="p-3 sm:p-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody id="tabela-admin-avaliacoes" class="text-sm divide-y divide-court-line"></tbody>
@@ -517,6 +567,8 @@
 
 <script>
   // ---------- Navegação ----------
+  let telaAnteriorParaVoltar = 'tela-jogador';
+
   function mudarTela(id){
     document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
@@ -584,11 +636,28 @@
 
   function avatarHTML(usuario, tamanho){
     tamanho = tamanho || 'w-10 h-10 text-sm';
-    if(usuario.foto){
-      return `<img src="${usuario.foto}" class="${tamanho} rounded-full object-cover border border-court-line shrink-0" alt="${usuario.nome}">`;
-    }
-    return `<div class="${tamanho} rounded-full flex items-center justify-center font-bold text-white shrink-0" style="background:${corAvatar(usuario.nome)}">${iniciais(usuario.nome)}</div>`;
+    const cor = corAvatar(usuario.nome);
+    const ini = iniciais(usuario.nome);
+    // Se não houver foto cadastrada manualmente, tenta o arquivo local fotos/<usuario>.jpg
+    const src = (usuario.foto && usuario.foto.trim()) ? usuario.foto.trim() : `fotos/${usuario.usuario}.jpg`;
+    return `<img src="${src}" data-cor="${cor}" data-iniciais="${ini}" class="avatar-foto ${tamanho} rounded-full object-cover border border-court-line shrink-0" alt="${usuario.nome}">`;
   }
+
+  // Se a foto não existir/carregar, troca automaticamente pelo avatar de iniciais.
+  // Funciona para qualquer avatar renderizado em qualquer lugar da tela, mesmo depois de re-render.
+  const observadorAvatares = new MutationObserver(()=>{
+    document.querySelectorAll('.avatar-foto:not([data-avatar-observado])').forEach(img=>{
+      img.setAttribute('data-avatar-observado','1');
+      img.addEventListener('error', function(){
+        const div = document.createElement('div');
+        div.className = img.className.replace('avatar-foto','').trim() + ' flex items-center justify-center font-bold text-white shrink-0';
+        div.style.background = img.dataset.cor;
+        div.textContent = img.dataset.iniciais;
+        img.replaceWith(div);
+      }, {once:true});
+    });
+  });
+  observadorAvatares.observe(document.body, {childList:true, subtree:true});
 
   // ---------- Login ----------
   function alternarSenhaVisivel(){
@@ -633,29 +702,64 @@
   function renderizarPainelJogador(){
     document.getElementById('jogador-nome').textContent = usuarioLogado.nome;
     document.getElementById('jogador-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-14 h-14 text-lg');
-    const cont = document.getElementById('lista-partidas-jogador');
-    const minhas = DB.partidas.filter(p=>p.participantes.includes(usuarioLogado.id))
-      .sort((a,b)=>a.data.localeCompare(b.data));
 
-    if(minhas.length===0){
-      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Nenhuma partida agendada no momento.</div>`;
-      return;
+    const hoje = new Date().toISOString().slice(0,10);
+    const minhas = DB.partidas.filter(p=>p.participantes.includes(usuarioLogado.id));
+    const futuras = minhas.filter(p=>p.data >= hoje).sort((a,b)=>a.data.localeCompare(b.data));
+    const passadas = minhas.filter(p=>p.data < hoje).sort((a,b)=>b.data.localeCompare(a.data));
+
+    // Próxima partida em destaque
+    const boxProxima = document.getElementById('proxima-partida-box');
+    if(futuras.length){
+      const p = futuras[0];
+      boxProxima.innerHTML = `
+        <p class="text-xl font-display font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+        <p class="text-sm text-court-muted mt-1">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>`;
+    } else {
+      boxProxima.innerHTML = `<p class="text-sm text-court-muted">Nenhuma partida futura agendada para você no momento.</p>`;
     }
 
-    cont.innerHTML = minhas.map(p=>{
-      const jaAvaliou = DB.avaliacoes.some(a=>a.partidaId===p.id && a.avaliadorId===usuarioLogado.id);
-      return `
-      <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p class="font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
-          <p class="text-sm text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>
-        </div>
-        ${jaAvaliou
-          ? `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Avaliado</span>`
-          : `<button onclick="abrirAvaliacao(${p.id})" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0 w-full sm:w-auto">Avaliar colegas</button>`
-        }
-      </div>`;
-    }).join('');
+    // Lista de partidas futuras (com botão de avaliar quando aplicável)
+    const cont = document.getElementById('lista-partidas-jogador');
+    if(futuras.length===0){
+      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Nenhuma partida futura agendada no momento.</div>`;
+    } else {
+      cont.innerHTML = futuras.map(p=>{
+        const jaAvaliou = DB.avaliacoes.some(a=>a.partidaId===p.id && a.avaliadorId===usuarioLogado.id);
+        return `
+        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+            <p class="text-sm text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>
+          </div>
+          ${jaAvaliou
+            ? `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Avaliado</span>`
+            : `<button onclick="abrirAvaliacao(${p.id})" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0 w-full sm:w-auto">Avaliar colegas</button>`
+          }
+        </div>`;
+      }).join('');
+    }
+
+    // Histórico de partidas já ocorridas
+    const contHist = document.getElementById('lista-historico-jogador');
+    if(passadas.length===0){
+      contHist.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Nenhuma partida no histórico ainda.</div>`;
+    } else {
+      contHist.innerHTML = passadas.map(p=>{
+        const jaAvaliou = DB.avaliacoes.some(a=>a.partidaId===p.id && a.avaliadorId===usuarioLogado.id);
+        return `
+        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <p class="font-semibold text-court-ink text-sm">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+            <p class="text-xs text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}</p>
+          </div>
+          ${jaAvaliou
+            ? `<span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Avaliado</span>`
+            : `<button onclick="abrirAvaliacao(${p.id})" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-court-coral/10 text-court-coral shrink-0 self-start sm:self-auto">Avaliar agora</button>`
+          }
+        </div>`;
+      }).join('');
+    }
   }
 
   // ---------- Avaliação ----------
@@ -674,8 +778,9 @@
           ${avatarHTML(jog, 'w-10 h-10 text-sm')}
           <p class="font-semibold text-court-ink">${jog.nome}</p>
         </div>
-        <div class="flex gap-1 mb-3 estrelas" data-valor="0">
-          ${[1,2,3,4,5].map(n=>`<i class="far fa-star text-2xl cursor-pointer text-court-coral" data-nota="${n}" onclick="selecionarNota(this)"></i>`).join('')}
+        <p class="text-xs font-medium text-court-muted mb-2">Nota de 0 a 10:</p>
+        <div class="grid grid-cols-6 sm:grid-cols-11 gap-1.5 mb-3 notas-numericas" data-valor="">
+          ${Array.from({length:11},(_,n)=>n).map(n=>`<button type="button" data-nota="${n}" onclick="selecionarNotaNumerica(this)" class="nota-btn h-9 rounded-lg border border-court-line text-sm font-semibold text-court-ink hover:border-court-teal transition">${n}</button>`).join('')}
         </div>
         <input type="text" placeholder="Comentário (opcional)" class="comentario-input w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
       </div>`;
@@ -684,14 +789,14 @@
     mudarTela('tela-avaliacao');
   }
 
-  function selecionarNota(el){
-    const nota = Number(el.dataset.nota);
+  function selecionarNotaNumerica(el){
     const grupo = el.parentElement;
-    grupo.dataset.valor = nota;
-    [...grupo.children].forEach(star=>{
-      const n = Number(star.dataset.nota);
-      star.classList.toggle('fas', n<=nota);
-      star.classList.toggle('far', n>nota);
+    grupo.dataset.valor = el.dataset.nota;
+    [...grupo.children].forEach(btn=>{
+      const selecionado = btn.dataset.nota === el.dataset.nota;
+      btn.classList.toggle('bg-court-teal', selecionado);
+      btn.classList.toggle('text-white', selecionado);
+      btn.classList.toggle('border-court-teal', selecionado);
     });
   }
 
@@ -703,22 +808,163 @@
 
     cards.forEach(card=>{
       const jogadorId = Number(card.dataset.jogadorId);
-      const nota = Number(card.querySelector('.estrelas').dataset.valor);
+      const valorAttr = card.querySelector('.notas-numericas').dataset.valor;
       const comentario = card.querySelector('.comentario-input').value.trim();
-      if(nota===0){ algumSemNota = true; return; }
+      if(valorAttr === '' || valorAttr === undefined){ algumSemNota = true; return; }
+      const nota = Number(valorAttr);
       DB.avaliacoes = DB.avaliacoes.filter(a=>!(a.partidaId===partidaId && a.avaliadorId===usuarioLogado.id && a.jogadorId===jogadorId));
       const novoId = DB.avaliacoes.length ? Math.max(...DB.avaliacoes.map(a=>a.id))+1 : 1;
       DB.avaliacoes.push({id: novoId, partidaId, avaliadorId: usuarioLogado.id, jogadorId, nota, comentario});
     });
 
     if(algumSemNota){
-      alert('Dê uma nota (estrelas) para todos os colegas antes de enviar.');
+      alert('Dê uma nota (de 0 a 10) para todos os colegas antes de enviar.');
       return;
     }
 
     salvarEstado();
     mudarTela('tela-jogador');
     mudarSubTelaJogador('partidas');
+  }
+
+  // ---------- Visão Geral (tela de início rápido, com botão de voltar) ----------
+  function abrirVisaoGeral(){
+    const secaoAtual = document.querySelector('main > section:not(.hidden)');
+    if(secaoAtual && secaoAtual.id !== 'tela-visao-geral') telaAnteriorParaVoltar = secaoAtual.id;
+    mudarTela('tela-visao-geral');
+    renderizarVisaoGeral();
+  }
+
+  function renderizarVisaoGeral(){
+    const cont = document.getElementById('conteudo-visao-geral');
+    const partida = partidaMaisProxima();
+
+    let blocoProxima;
+    if(partida){
+      blocoProxima = `
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-coral">
+          <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider mb-2"><i class="fas fa-calendar-check mr-1"></i> Próxima Partida</h3>
+          <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
+          <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
+        </div>`;
+    } else {
+      blocoProxima = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line text-sm text-court-muted text-center">Nenhuma partida futura cadastrada no momento.</div>`;
+    }
+
+    let blocoPreLista = '';
+    if(partida){
+      const confirmados = partida.confirmados || [];
+      if(confirmados.length){
+        const nomes = confirmados.map(id=>{
+          const u = DB.usuarios.find(x=>x.id===id);
+          if(!u) return '';
+          return `<div class="flex items-center gap-2 p-2 rounded-lg bg-court-bg border border-court-line">${avatarHTML(u,'w-7 h-7 text-xs')}<span class="text-sm font-medium text-court-ink truncate">${u.nome}</span></div>`;
+        }).join('');
+        blocoPreLista = `
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider"><i class="fas fa-list-check mr-1"></i> Pré-lista (${confirmados.length}/12)</h3>
+              <button onclick="abrirListaProximoJogo()" class="text-xs font-semibold text-court-teal hover:underline">Ver / confirmar presença</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${nomes}</div>
+          </div>`;
+      } else {
+        blocoPreLista = `
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line text-center">
+            <p class="text-sm text-court-muted mb-3">Ainda ninguém confirmou presença no próximo jogo.</p>
+            <button onclick="abrirListaProximoJogo()" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Confirmar minha presença</button>
+          </div>`;
+      }
+    }
+
+    cont.innerHTML = blocoProxima + blocoPreLista;
+  }
+
+  // ---------- Listagem Próximo Jogo (lista de presença pública, até 12 vagas) ----------
+  function partidaMaisProxima(){
+    const hoje = new Date().toISOString().slice(0,10);
+    const futuras = DB.partidas.filter(p=>p.data >= hoje)
+      .sort((a,b)=> a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario));
+    return futuras[0] || null;
+  }
+
+  function abrirListaProximoJogo(){
+    const secaoAtual = document.querySelector('main > section:not(.hidden)');
+    if(secaoAtual) telaAnteriorParaVoltar = secaoAtual.id;
+    mudarTela('tela-lista-proximo-jogo');
+    renderizarListaProximoJogo();
+  }
+
+  function renderizarListaProximoJogo(){
+    const cont = document.getElementById('conteudo-lista-proximo-jogo');
+    const partida = partidaMaisProxima();
+
+    if(!partida){
+      cont.innerHTML = `<p class="text-center text-court-muted text-sm py-10">Nenhuma partida futura cadastrada no momento.</p>`;
+      return;
+    }
+
+    if(!partida.confirmados) partida.confirmados = [];
+    const jaConfirmado = usuarioLogado && partida.confirmados.includes(usuarioLogado.id);
+    const vagas = 12 - partida.confirmados.length;
+
+    const slots = Array.from({length:12}, (_, i)=>{
+      const uid = partida.confirmados[i];
+      if(uid){
+        const u = DB.usuarios.find(x=>x.id===uid);
+        const podeRemover = usuarioLogado && (usuarioLogado.id===uid || usuarioLogado.perfil==='admin');
+        return `
+        <div class="flex items-center gap-2 p-2.5 rounded-lg bg-court-bg border border-court-line">
+          <span class="text-xs font-bold text-court-muted w-5 shrink-0">${i+1}.</span>
+          ${avatarHTML(u || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
+          <span class="text-sm font-medium text-court-ink truncate">${u ? u.nome : '—'}</span>
+          ${podeRemover ? `<button onclick="removerConfirmacao(${partida.id},${uid})" class="ml-auto text-red-400 hover:text-red-600 text-xs p-1"><i class="fas fa-times"></i></button>` : ''}
+        </div>`;
+      }
+      return `
+      <div class="flex items-center gap-2 p-2.5 rounded-lg border border-dashed border-court-line text-court-muted text-sm">
+        <span class="text-xs font-bold w-5 shrink-0">${i+1}.</span> Vaga livre
+      </div>`;
+    }).join('');
+
+    let botao = '';
+    if(jaConfirmado){
+      botao = `<button onclick="removerConfirmacao(${partida.id}, ${usuarioLogado.id})" class="w-full bg-white border border-court-line hover:bg-gray-50 text-court-ink font-semibold py-3 rounded-xl transition"><i class="fas fa-times mr-2"></i>Cancelar minha presença</button>`;
+    } else if(vagas > 0){
+      botao = `<button onclick="confirmarPresenca(${partida.id})" class="w-full bg-court-coral hover:brightness-95 text-white font-bold py-3 rounded-xl transition shadow-md"><i class="fas fa-check mr-2"></i>Confirmar minha presença</button>`;
+    } else {
+      botao = `<p class="text-center text-sm text-court-muted">Lista completa (12/12).</p>`;
+    }
+
+    cont.innerHTML = `
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-teal mb-6">
+        <p class="text-xs font-bold text-court-muted uppercase tracking-wider mb-1">Próximo Jogo</p>
+        <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
+        <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
+        <p class="text-sm font-semibold text-court-teal mt-3">${partida.confirmados.length}/12 confirmados</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">${slots}</div>
+      ${botao}
+    `;
+  }
+
+  function confirmarPresenca(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida || !usuarioLogado) return;
+    if(!partida.confirmados) partida.confirmados = [];
+    if(partida.confirmados.includes(usuarioLogado.id)) return;
+    if(partida.confirmados.length >= 12){ alert('A lista já está completa (12/12).'); return; }
+    partida.confirmados.push(usuarioLogado.id);
+    salvarEstado();
+    renderizarListaProximoJogo();
+  }
+
+  function removerConfirmacao(partidaId, userId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    partida.confirmados = (partida.confirmados || []).filter(id=>id!==userId);
+    salvarEstado();
+    renderizarListaProximoJogo();
   }
 
   // ---------- Admin: Jogadores ----------
@@ -937,13 +1183,23 @@
         <td class="p-4 text-court-muted text-xs">${partida ? formatarData(partida.data) : '—'}</td>
         <td class="p-4">${avaliador?.nome || '—'}</td>
         <td class="p-4 font-medium text-court-ink">${avaliado?.nome || '—'}</td>
-        <td class="p-4 text-court-coral font-bold">${a.nota} <i class="fas fa-star text-xs"></i></td>
+        <td class="p-4 text-court-coral font-bold">${a.nota}<span class="text-xs text-court-muted">/10</span></td>
         <td class="p-4 text-court-muted text-xs">${a.comentario || '—'}</td>
+        <td class="p-4 text-right">
+          <button onclick="removerAvaliacao(${a.id})" class="text-red-400 hover:text-red-600 p-1" title="Excluir avaliação"><i class="fas fa-trash"></i></button>
+        </td>
       </tr>`;
     }).join('');
 
     const media = lista.length ? (lista.reduce((s,a)=>s+a.nota,0)/lista.length).toFixed(2) : '0.00';
     document.getElementById('media-geral-painel').textContent = media;
+  }
+
+  function removerAvaliacao(id){
+    if(!confirm('Excluir esta avaliação? Essa ação não pode ser desfeita.')) return;
+    DB.avaliacoes = DB.avaliacoes.filter(a=>a.id!==id);
+    salvarEstado();
+    renderizarAbaAvaliacoes();
   }
 
   // ---------- Ranking (usado pelo Admin e também pelo jogador em "Notas Gerais") ----------
@@ -975,7 +1231,7 @@
       box.innerHTML = `
         <p class="text-sm text-court-muted mb-1">Jogador(a) com a melhor média geral:</p>
         <p class="text-2xl font-display font-bold text-court-ink">${vencedor.u.nome}</p>
-        <p class="text-court-coral font-bold text-lg">${vencedor.media.toFixed(2)} <i class="fas fa-star text-sm"></i></p>`;
+        <p class="text-court-coral font-bold text-lg">${vencedor.media.toFixed(2)}<span class="text-sm text-court-muted">/10</span></p>`;
     } else {
       box.innerHTML = `<p class="text-sm text-court-muted">Ainda não há avaliações suficientes para apurar o brinde.</p>`;
     }
