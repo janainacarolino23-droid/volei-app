@@ -29,6 +29,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Firebase (Firestore) — usado para salvar tudo online e sincronizar entre celulares -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   body { font-family: 'Inter', sans-serif; }
   .font-display { font-family: 'Fraunces', serif; }
@@ -44,8 +47,34 @@
 </head>
 <body class="bg-court-bg font-body text-court-ink min-h-screen">
 
+<div id="firebase-erro-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-center text-sm py-2 z-50 px-3">
+  <i class="fas fa-triangle-exclamation mr-1"></i> Não foi possível conectar ao Firebase. Verifique a configuração (firebaseConfig) e a internet.
+</div>
+
 <script>
-  const DB = {
+  // =====================================================================
+  // CONFIGURAÇÃO DO FIREBASE
+  // Troque os valores abaixo pelos dados do SEU projeto Firebase.
+  // Passo a passo completo: veja a conversa / README que te enviei.
+  // =====================================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyBj9JskW4G50_ziM1NLh3EX0EnoEluJx3A",
+    authDomain: "familia-volei.firebaseapp.com",
+    projectId: "familia-volei",
+    storageBucket: "familia-volei.firebasestorage.app",
+    messagingSenderId: "250165693676",
+    appId: "1:250165693676:web:3ada372301612d336329c9"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const dbFirestore = firebase.firestore();
+
+  // Documento único no Firestore onde TODO o estado do app é salvo.
+  const DOC_REF = dbFirestore.collection('familiaVolei').doc('estado');
+
+  // Dados iniciais — usados apenas na PRIMEIRA vez, para "semear" o Firestore
+  // caso o documento ainda não exista. Depois disso, quem manda é o Firestore.
+  const DADOS_INICIAIS = {
     usuarios: [
       { id: 1,  nome: "Janaína",  usuario: "janaina",  senha: "Janaina@Volei26",  perfil: "admin",   ativo: true, foto: "" },
       { id: 2,  nome: "Jairo",    usuario: "jairo",    senha: "Jairo@Volei26",    perfil: "jogador", ativo: true, foto: "" },
@@ -73,7 +102,84 @@
     avaliacoes: []
   };
 
+  // DB começa vazio; é preenchido assim que o Firestore responder.
+  let DB = { usuarios: [], partidas: [], locais: [], quadras: [], avaliacoes: [] };
   let usuarioLogado = null;
+  let firebasePronto = false;
+
+  // ---------- Carregar / sincronizar com o Firestore ----------
+  function iniciarSincronizacaoFirebase(){
+    DOC_REF.get().then(snap=>{
+      if(!snap.exists){
+        // Primeira vez: cria o documento no Firestore com os dados iniciais
+        DOC_REF.set(DADOS_INICIAIS).then(()=>{
+          console.log('Firestore semeado com os dados iniciais.');
+        });
+      }
+      // Escuta mudanças em tempo real (inclusive as que vieram de outros celulares)
+      DOC_REF.onSnapshot(docSnap=>{
+        if(!docSnap.exists) return;
+        const dados = docSnap.data();
+        DB.usuarios   = dados.usuarios   || [];
+        DB.partidas   = dados.partidas   || [];
+        DB.locais     = dados.locais     || [];
+        DB.quadras    = dados.quadras    || [];
+        DB.avaliacoes = dados.avaliacoes || [];
+        firebasePronto = true;
+        atualizarTelaAtual();
+      }, err=>{
+        console.error('Erro ao sincronizar com o Firestore:', err);
+        mostrarErroFirebase();
+      });
+    }).catch(err=>{
+      console.error('Erro ao conectar ao Firestore:', err);
+      mostrarErroFirebase();
+    });
+  }
+
+  function mostrarErroFirebase(){
+    const el = document.getElementById('firebase-erro-banner');
+    if(el) el.classList.remove('hidden');
+  }
+
+  // Salva o estado inteiro (DB) no Firestore. Chame sempre após alterar dados.
+  function salvarEstado(){
+    DOC_REF.set(DB).catch(err=>{
+      console.error('Erro ao salvar no Firestore:', err);
+      alert('Não foi possível salvar online agora. Verifique sua conexão com a internet.');
+    });
+  }
+
+  // Re-renderiza a tela visível no momento, para refletir dados novos vindos de outro aparelho
+  function atualizarTelaAtual(){
+    if(!usuarioLogado){
+      return;
+    }
+    const telaJogadorVisivel = !document.getElementById('tela-jogador').classList.contains('hidden');
+    const telaAdminVisivel = !document.getElementById('tela-admin').classList.contains('hidden');
+
+    if(telaJogadorVisivel){
+      const subJogVisivel = [...document.querySelectorAll('.sub-jogador-pane')].find(p=>!p.classList.contains('hidden'));
+      if(subJogVisivel && subJogVisivel.id==='sub-jogador-ranking'){
+        renderizarRankingJogador();
+      } else {
+        renderizarPainelJogador();
+      }
+    }
+    if(telaAdminVisivel){
+      const subVisivel = [...document.querySelectorAll('.sub-admin-pane')].find(p=>!p.classList.contains('hidden'));
+      if(subVisivel){
+        const sub = subVisivel.id.replace('sub-admin-','');
+        if(sub==='jogadores') renderizarTabelaJogadores();
+        if(sub==='partidas') renderizarTabelaPartidas();
+        if(sub==='avaliacoes') renderizarAbaAvaliacoes();
+        if(sub==='ranking') renderizarRanking();
+        if(sub==='exportar') renderizarExportar();
+      }
+    }
+  }
+
+  iniciarSincronizacaoFirebase();
 </script>
 
 <header id="main-nav" class="bg-court-teal text-white shadow-md hidden mb-6 sm:mb-8">
@@ -112,7 +218,12 @@
       </div>
       <div>
         <label class="block text-sm font-medium text-court-ink mb-1">Senha</label>
-        <input type="password" id="login-password" required class="w-full px-3 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+        <div class="relative">
+          <input type="password" id="login-password" required class="w-full px-3 py-2 pr-10 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+          <button type="button" onclick="alternarSenhaVisivel()" tabindex="-1" class="absolute right-0 top-0 h-full px-3 text-court-muted hover:text-court-ink">
+            <i id="icone-olho-senha" class="far fa-eye"></i>
+          </button>
+        </div>
       </div>
       <div id="login-erro" class="text-red-500 text-sm font-medium hidden">
         <i class="fas fa-exclamation-circle"></i> Usuário ou senha inválidos.
@@ -133,9 +244,39 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
-      <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Minhas Partidas</div>
-      <div id="lista-partidas-jogador" class="divide-y divide-court-line"></div>
+    <div class="flex gap-2 mb-4">
+      <button onclick="mudarSubTelaJogador('partidas')" id="btn-sub-jog-partidas" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-court-teal/10 text-court-teal">
+        <i class="fas fa-calendar-alt mr-1"></i> Minhas Partidas
+      </button>
+      <button onclick="mudarSubTelaJogador('ranking')" id="btn-sub-jog-ranking" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
+        <i class="fas fa-trophy mr-1"></i> Notas Gerais
+      </button>
+    </div>
+
+    <div id="sub-jogador-partidas" class="sub-jogador-pane">
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Minhas Partidas</div>
+        <div id="lista-partidas-jogador" class="divide-y divide-court-line"></div>
+      </div>
+    </div>
+
+    <div id="sub-jogador-ranking" class="sub-jogador-pane hidden space-y-4">
+      <p class="text-sm text-court-muted">Classificação geral com base na média de todas as avaliações recebidas por cada jogador(a).</p>
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[500px]">
+          <thead>
+            <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+              <th class="p-3 sm:p-4 w-16">Pos.</th>
+              <th class="p-3 sm:p-4">Jogador</th>
+              <th class="p-3 sm:p-4 text-center">Média Geral</th>
+              <th class="p-3 sm:p-4 text-center">Avaliações Recebidas</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-jogador-ranking" class="text-sm divide-y divide-court-line"></tbody>
+        </table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -381,6 +522,21 @@
     document.getElementById(id).classList.remove('hidden');
   }
 
+  function mudarSubTelaJogador(sub){
+    document.querySelectorAll('.sub-jogador-pane').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('sub-jogador-'+sub).classList.remove('hidden');
+    document.querySelectorAll('#btn-sub-jog-partidas, #btn-sub-jog-ranking').forEach(b=>{
+      b.classList.remove('bg-court-teal/10','text-court-teal');
+      b.classList.add('text-gray-600');
+    });
+    const btn = document.getElementById('btn-sub-jog-'+sub);
+    btn.classList.add('bg-court-teal/10','text-court-teal');
+    btn.classList.remove('text-gray-600');
+
+    if(sub==='partidas') renderizarPainelJogador();
+    if(sub==='ranking') renderizarRankingJogador();
+  }
+
   function mudarSubTelaAdmin(sub){
     document.querySelectorAll('.sub-admin-pane').forEach(p=>p.classList.add('hidden'));
     document.getElementById('sub-admin-'+sub).classList.remove('hidden');
@@ -435,6 +591,15 @@
   }
 
   // ---------- Login ----------
+  function alternarSenhaVisivel(){
+    const input = document.getElementById('login-password');
+    const icone = document.getElementById('icone-olho-senha');
+    const visivel = input.type === 'text';
+    input.type = visivel ? 'password' : 'text';
+    icone.classList.toggle('fa-eye', visivel);
+    icone.classList.toggle('fa-eye-slash', !visivel);
+  }
+
   function login(event){
     event.preventDefault();
     const u = document.getElementById('login-username').value.trim().toLowerCase();
@@ -452,7 +617,7 @@
       mudarSubTelaAdmin('jogadores');
     } else {
       mudarTela('tela-jogador');
-      renderizarPainelJogador();
+      mudarSubTelaJogador('partidas');
     }
   }
 
@@ -551,8 +716,9 @@
       return;
     }
 
+    salvarEstado();
     mudarTela('tela-jogador');
-    renderizarPainelJogador();
+    mudarSubTelaJogador('partidas');
   }
 
   // ---------- Admin: Jogadores ----------
@@ -589,6 +755,7 @@
       DB.usuarios.push({id: novoId, nome, usuario, senha, foto, perfil:'jogador', ativo});
     }
 
+    salvarEstado();
     event.target.reset();
     document.getElementById('jog-id').value = '';
     document.getElementById('jog-ativo').checked = true;
@@ -613,6 +780,7 @@
     if(jog.perfil==='admin'){ alert('Não é possível remover o administrador.'); return; }
     if(!confirm('Remover este jogador? Essa ação não pode ser desfeita.')) return;
     DB.usuarios = DB.usuarios.filter(u=>u.id!==id);
+    salvarEstado();
     renderizarTabelaJogadores();
   }
 
@@ -640,6 +808,7 @@
     const nome = prompt('Nome do novo local:');
     if(nome && nome.trim()){
       DB.locais.push(nome.trim());
+      salvarEstado();
       renderizarOpcoesLocais(nome.trim());
     } else {
       renderizarOpcoesLocais(DB.locais[0]);
@@ -659,6 +828,7 @@
     const nome = prompt('Nome/número da nova quadra (ex: Quadra 10):');
     if(nome && nome.trim()){
       DB.quadras.push(nome.trim());
+      salvarEstado();
       renderizarOpcoesQuadras(nome.trim());
     } else {
       renderizarOpcoesQuadras(DB.quadras[0]);
@@ -685,6 +855,7 @@
       DB.partidas.push({id: novoId, data, horario, local, quadra, obs, participantes});
     }
 
+    salvarEstado();
     event.target.reset();
     document.getElementById('part-id').value = '';
     document.getElementById('titulo-form-partida').textContent = 'Cadastrar Nova Partida';
@@ -715,6 +886,7 @@
     if(!confirm('Remover esta partida?')) return;
     DB.partidas = DB.partidas.filter(p=>p.id!==id);
     DB.avaliacoes = DB.avaliacoes.filter(a=>a.partidaId!==id);
+    salvarEstado();
     renderizarTabelaPartidas();
   }
 
@@ -774,14 +946,18 @@
     document.getElementById('media-geral-painel').textContent = media;
   }
 
-  // ---------- Admin: Ranking ----------
-  function renderizarRanking(){
-    const ranking = DB.usuarios.map(u=>{
+  // ---------- Ranking (usado pelo Admin e também pelo jogador em "Notas Gerais") ----------
+  function construirRanking(){
+    return DB.usuarios.map(u=>{
       const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===u.id);
       const media = recebidas.length ? recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length : 0;
       const partidasDisputadas = DB.partidas.filter(p=>p.participantes.includes(u.id)).length;
       return {u, media, partidasDisputadas, avaliacoesRecebidas: recebidas.length};
     }).filter(r=>r.avaliacoesRecebidas>0).sort((a,b)=>b.media-a.media);
+  }
+
+  function renderizarRanking(){
+    const ranking = construirRanking();
 
     const tbody = document.getElementById('tabela-admin-ranking');
     tbody.innerHTML = ranking.map((r,i)=>`
@@ -803,6 +979,20 @@
     } else {
       box.innerHTML = `<p class="text-sm text-court-muted">Ainda não há avaliações suficientes para apurar o brinde.</p>`;
     }
+  }
+
+  // Mesma classificação geral, só que exibida na tela do jogador (somente leitura)
+  function renderizarRankingJogador(){
+    const ranking = construirRanking();
+    const tbody = document.getElementById('tabela-jogador-ranking');
+    if(!tbody) return;
+    tbody.innerHTML = ranking.map((r,i)=>`
+      <tr class="${usuarioLogado && r.u.id===usuarioLogado.id ? 'bg-court-teal/5' : ''}">
+        <td class="p-3 sm:p-4 font-bold text-court-ink">${i+1}º</td>
+        <td class="p-3 sm:p-4 font-medium text-court-ink"><div class="flex items-center gap-3">${avatarHTML(r.u, 'w-8 h-8 text-xs')}<span>${r.u.nome}</span></div></td>
+        <td class="p-3 sm:p-4 text-center font-bold text-court-teal">${r.media.toFixed(2)}</td>
+        <td class="p-3 sm:p-4 text-center text-court-muted">${r.avaliacoesRecebidas}</td>
+      </tr>`).join('') || `<tr><td colspan="4" class="p-6 text-center text-court-muted text-sm">Ainda não há avaliações registradas.</td></tr>`;
   }
 
   // ---------- Admin: Exportar ----------
