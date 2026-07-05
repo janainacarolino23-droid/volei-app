@@ -109,10 +109,10 @@
       { id: 14, nome: "Pedro",    usuario: "pedro",    senha: "Pedro@Volei26",    perfil: "jogador", ativo: true, foto: "" }
     ],
     partidas: [
-      { id: 101, data: "2026-07-10", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Jogo regular", participantes: [2,3,4,5,6,7,8] },
-      { id: 102, data: "2026-07-17", horario: "19:30", local: "Praia Clube Sports", quadra: "Quadra 8", obs: "", participantes: [2,4,9,10,11,12,13,14] },
-      { id: 103, data: "2026-07-24", horario: "21:00", local: "Praia Clube Sports", quadra: "Quadra 9", obs: "", participantes: [3,5,6,9,12,13,14] },
-      { id: 104, data: "2026-07-31", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Final do mês", participantes: [2,3,5,6,9,11,13,14] }
+      { id: 101, data: "2026-07-10", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Jogo regular", status: "aberta", confirmados: [2,3,4,5,6,7,8], pagos: [] },
+      { id: 102, data: "2026-07-17", horario: "19:30", local: "Praia Clube Sports", quadra: "Quadra 8", obs: "", status: "aberta", confirmados: [2,4,9,10,11,12,13,14], pagos: [] },
+      { id: 103, data: "2026-07-24", horario: "21:00", local: "Praia Clube Sports", quadra: "Quadra 9", obs: "", status: "aberta", confirmados: [3,5,6,9,12,13,14], pagos: [] },
+      { id: 104, data: "2026-07-31", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Final do mês", status: "aberta", confirmados: [2,3,5,6,9,11,13,14], pagos: [] }
     ],
     locais: ["Praia Clube Sports"],
     quadras: ["Quadra 7", "Quadra 8", "Quadra 9"],
@@ -220,29 +220,47 @@
     </button>
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <div id="nav-user-avatar"></div>
-      <span id="nav-user-name" class="font-medium text-xs sm:text-sm max-w-[70px] sm:max-w-none truncate"></span>
-      <button onclick="abrirVisaoGeral()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
-        <i class="fas fa-house"></i><span class="hidden sm:inline"> Visão Geral</span>
-      </button>
-      <button onclick="abrirListaProximoJogo()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
-        <i class="fas fa-list-check"></i><span class="hidden sm:inline"> Próximo Jogo</span>
-      </button>
-      <button onclick="abrirSugestoes()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
-        <i class="fas fa-comment-dots"></i><span class="hidden sm:inline"> Sugestões</span>
-      </button>
-      <button onclick="abrirAreaJogador()" id="btn-nav-area-jogador" class="hidden bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
-        <i class="fas fa-star"></i><span class="hidden sm:inline"> Avaliar / Minhas Partidas</span>
-      </button>
-      <button onclick="pedirPermissaoNotificacao()" id="btn-nav-notificacoes" class="hidden bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
-        <i class="fas fa-bell"></i><span class="hidden sm:inline"> Ativar Avisos</span>
-      </button>
-      <button onclick="logout()" class="bg-court-teal-dark hover:brightness-110 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm transition">
-        <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline"> Sair</span>
+      <span id="nav-user-name" class="font-medium text-xs sm:text-sm max-w-[90px] sm:max-w-none truncate"></span>
+      <button onclick="abrirMenu()" class="bg-court-teal-dark hover:brightness-110 w-9 h-9 rounded-lg flex items-center justify-center transition" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
       </button>
     </div>
   </div>
   <div class="net-divider light"></div>
 </header>
+
+<!-- MENU LATERAL (aparece por cima de tudo, com ícone + texto sempre visíveis) -->
+<div id="menu-overlay" onclick="fecharMenu()" class="fixed inset-0 bg-black/40 z-40 hidden"></div>
+<aside id="menu-lateral" class="fixed top-0 right-0 h-full w-72 max-w-[85vw] bg-white shadow-2xl z-50 translate-x-full transition-transform duration-300 flex flex-col">
+  <div class="bg-court-teal text-white p-4 flex items-center justify-between shrink-0">
+    <span class="font-display font-semibold text-lg flex items-center gap-2"><i class="fas fa-volleyball"></i> Menu</span>
+    <button onclick="fecharMenu()" class="w-8 h-8 flex items-center justify-center hover:bg-court-teal-dark rounded-lg transition" aria-label="Fechar menu">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+    <button onclick="fecharMenu(); abrirVisaoGeral();" class="w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-house w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Visão Geral</span></span>
+    </button>
+    <button onclick="fecharMenu(); abrirListaProximoJogo();" class="w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-list-check w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Partidas Abertas</span></span>
+    </button>
+    <button onclick="fecharMenu(); abrirSugestoes();" class="w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-comment-dots w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Sugestões</span></span>
+    </button>
+    <button onclick="fecharMenu(); abrirAreaJogador();" id="btn-nav-area-jogador" class="hidden w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-star w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Avaliar / Minhas Partidas</span></span>
+    </button>
+    <button onclick="pedirPermissaoNotificacao()" id="btn-nav-notificacoes" class="hidden w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-bell w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Ativar Avisos</span></span>
+    </button>
+  </nav>
+  <div class="p-3 border-t border-court-line shrink-0">
+    <button onclick="fecharMenu(); logout();" class="w-full text-left px-3 py-3 rounded-lg text-red-500 hover:bg-red-50 transition">
+      <span class="flex items-center gap-3"><i class="fas fa-sign-out-alt w-5 text-center"></i><span class="font-medium text-sm">Sair</span></span>
+    </button>
+  </div>
+</aside>
 
 <main class="container mx-auto px-3 sm:px-4 max-w-6xl pb-16">
 
@@ -330,6 +348,7 @@
         </label>
         <span id="status-upload-foto" class="text-xs text-court-muted"></span>
       </div>
+      <div id="jogador-stats" class="mt-4 pt-4 border-t border-court-line grid grid-cols-3 gap-2 sm:gap-4 text-center"></div>
     </div>
 
     <div class="flex gap-2 mb-4">
@@ -389,6 +408,10 @@
           <p class="text-xs font-semibold text-court-muted uppercase tracking-wider">Sua Média</p>
           <p class="text-2xl font-display font-bold text-court-teal" id="minha-media-avaliacoes">0.00</p>
         </div>
+      </div>
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+        <h3 class="text-sm font-bold text-court-ink flex items-center gap-2 mb-3"><i class="fas fa-chart-line text-court-teal"></i> Sua Evolução Mensal</h3>
+        <div id="grafico-evolucao-minha-media"></div>
       </div>
       <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
         <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Avaliações Recebidas</div>
@@ -564,10 +587,7 @@
                 <label class="block text-xs font-medium text-court-ink mb-1">Observações</label>
                 <input type="text" id="part-obs" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
               </div>
-              <div>
-                <label class="block text-xs font-medium text-court-ink mb-2">Selecione os Participantes:</label>
-                <div id="partida-checkboxes-jogadores" class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-court-bg p-3 rounded-lg border border-court-line max-h-40 overflow-y-auto"></div>
-              </div>
+              <p class="text-xs text-court-muted bg-court-bg border border-court-line rounded-lg p-3"><i class="fas fa-circle-info mr-1"></i>Não é preciso escolher quem vai jogar agora — depois de salva, a partida fica visível para todos confirmarem presença sozinhos.</p>
               <div class="flex justify-end">
                 <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-6 py-2 rounded-lg transition">
                   Salvar Partida
@@ -584,7 +604,8 @@
                   <th class="p-3 sm:p-4">Data/Hora</th>
                   <th class="p-3 sm:p-4">Local</th>
                   <th class="p-3 sm:p-4">Quadra</th>
-                  <th class="p-3 sm:p-4">Participantes</th>
+                  <th class="p-3 sm:p-4">Confirmados</th>
+                  <th class="p-3 sm:p-4">Status</th>
                   <th class="p-3 sm:p-4 text-right">Ações</th>
                 </tr>
               </thead>
@@ -637,6 +658,7 @@
             <h3 class="text-lg font-display font-semibold text-court-ink flex items-center gap-2 mb-2">
               <i class="fas fa-gift text-court-coral"></i> Apuração do Brinde Mensal
             </h3>
+            <p class="text-xs text-court-muted -mt-1 mb-2">Considera só as avaliações de partidas deste mês.</p>
             <div id="resultado-brinde-box" class="mt-4 p-4 rounded-lg bg-court-bg"></div>
           </div>
 
@@ -656,6 +678,21 @@
               <tbody id="tabela-admin-ranking" class="text-sm divide-y divide-court-line"></tbody>
             </table>
             </div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <h3 class="text-sm font-bold text-court-ink flex items-center gap-2"><i class="fas fa-chart-line text-court-teal"></i> Evolução da Média Mensal</h3>
+              <select id="grafico-jogador-select" onchange="renderizarGraficoJogadorSelecionado()" class="text-sm px-3 py-1.5 border border-court-line rounded-lg outline-none focus:border-court-teal"></select>
+            </div>
+            <div id="grafico-evolucao-media"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink flex items-center gap-2">
+              <i class="fas fa-trophy text-amber-500"></i> Hall da Fama — Vencedores por Mês
+            </div>
+            <div id="lista-hall-fama" class="divide-y divide-court-line"></div>
           </div>
         </div>
 
@@ -746,7 +783,7 @@
     btn.classList.remove('text-gray-600');
 
     if(sub==='jogadores') renderizarTabelaJogadores();
-    if(sub==='partidas'){ renderizarCheckboxesJogadores(); renderizarOpcoesLocais(); renderizarOpcoesQuadras(); renderizarTabelaPartidas(); }
+    if(sub==='partidas'){ renderizarOpcoesLocais(); renderizarOpcoesQuadras(); renderizarTabelaPartidas(); }
     if(sub==='avaliacoes'){ popularFiltroJogadores(); renderizarAbaAvaliacoes(); }
     if(sub==='ranking') renderizarRanking();
     if(sub==='exportar') renderizarExportar();
@@ -899,9 +936,21 @@
     });
   }
 
+  // ---------- Menu lateral (mobile-friendly) ----------
+  function abrirMenu(){
+    document.getElementById('menu-overlay').classList.remove('hidden');
+    document.getElementById('menu-lateral').classList.remove('translate-x-full');
+  }
+
+  function fecharMenu(){
+    document.getElementById('menu-overlay').classList.add('hidden');
+    document.getElementById('menu-lateral').classList.add('translate-x-full');
+  }
+
   function logout(){
     usuarioLogado = null;
     pilhaNavegacao = [];
+    fecharMenu();
     document.getElementById('main-nav').classList.add('hidden');
     document.getElementById('login-username').value = '';
     document.getElementById('login-password').value = '';
@@ -913,10 +962,40 @@
     document.getElementById('jogador-nome').textContent = usuarioLogado.nome;
     document.getElementById('jogador-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-14 h-14 text-lg');
 
-    const hoje = new Date().toISOString().slice(0,10);
-    const minhas = DB.partidas.filter(p=>p.participantes.includes(usuarioLogado.id));
-    const futuras = minhas.filter(p=>p.data >= hoje).sort((a,b)=>a.data.localeCompare(b.data));
-    const passadas = minhas.filter(p=>p.data < hoje).sort((a,b)=>b.data.localeCompare(a.data));
+    // Estatísticas pessoais: partidas jogadas, média histórica e posição no ranking
+    const statsCont = document.getElementById('jogador-stats');
+    if(statsCont){
+      const partidasJogadas = DB.partidas.filter(p=>(p.confirmados||[]).includes(usuarioLogado.id)).length;
+      const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===usuarioLogado.id);
+      const media = recebidas.length ? (recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length) : null;
+      const ranking = construirRanking();
+      const posicao = ranking.findIndex(r=>r.u.id===usuarioLogado.id);
+      const foraDoRanking = usuarioLogado.avaliavel===false || usuarioLogado.perfil==='admin';
+
+      statsCont.innerHTML = `
+        <div>
+          <p class="text-2xl font-display font-bold text-court-ink">${partidasJogadas}</p>
+          <p class="text-xs text-court-muted mt-0.5">Partidas jogadas</p>
+        </div>
+        <div>
+          <p class="text-2xl font-display font-bold text-court-teal">${media!==null ? media.toFixed(2) : '—'}</p>
+          <p class="text-xs text-court-muted mt-0.5">Média geral</p>
+        </div>
+        <div>
+          <p class="text-2xl font-display font-bold text-court-coral">${foraDoRanking ? '—' : (posicao>=0 ? (posicao+1)+'º' : '—')}</p>
+          <p class="text-xs text-court-muted mt-0.5">${foraDoRanking ? 'Não concorre' : 'Posição no ranking'}</p>
+        </div>`;
+    }
+
+    // Partidas abertas: aparecem para TODOS, já que quem vai jogar é definido
+    // por cada um confirmando presença (não há mais pré-seleção na criação).
+    const futuras = partidasAbertas();
+
+    // Histórico: partidas já concluídas em que EU confirmei presença — só quem
+    // realmente foi pode avaliar os colegas daquela partida.
+    const passadas = DB.partidas
+      .filter(p=>partidaConcluida(p) && (p.confirmados||[]).includes(usuarioLogado.id))
+      .sort((a,b)=>b.data.localeCompare(a.data));
 
     // Próxima partida em destaque
     const boxProxima = document.getElementById('proxima-partida-box');
@@ -926,31 +1005,39 @@
         <p class="text-xl font-display font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
         <p class="text-sm text-court-muted mt-1">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>`;
     } else {
-      boxProxima.innerHTML = `<p class="text-sm text-court-muted">Nenhuma partida futura agendada para você no momento.</p>`;
+      boxProxima.innerHTML = `<p class="text-sm text-court-muted">Nenhuma partida aberta no momento.</p>`;
     }
 
-    // Lista de partidas futuras (com botão de avaliar quando aplicável)
+    // Lista de partidas abertas — com atalho pra confirmar presença
     const cont = document.getElementById('lista-partidas-jogador');
     if(futuras.length===0){
-      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Nenhuma partida futura agendada no momento.</div>`;
+      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Nenhuma partida aberta no momento.</div>`;
     } else {
       cont.innerHTML = futuras.map(p=>{
-        const jaAvaliou = DB.avaliacoes.some(a=>a.partidaId===p.id && a.avaliadorId===usuarioLogado.id);
+        const confirmados = p.confirmados || [];
+        const jaConfirmou = confirmados.includes(usuarioLogado.id);
+        const vagas = 12 - confirmados.length;
+        let acao;
+        if(jaConfirmou){
+          acao = `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Presença confirmada</span>`;
+        } else if(vagas > 0){
+          acao = `<button onclick="confirmarPresenca(${p.id})" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0 w-full sm:w-auto">Confirmar presença</button>`;
+        } else {
+          acao = `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 shrink-0 self-start sm:self-auto">Lista completa</span>`;
+        }
         return `
         <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p class="font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
             <p class="text-sm text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>
+            <p class="text-xs text-court-muted mt-0.5">${confirmados.length}/12 confirmados</p>
           </div>
-          ${jaAvaliou
-            ? `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Avaliado</span>`
-            : `<button onclick="abrirAvaliacao(${p.id})" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0 w-full sm:w-auto">Avaliar colegas</button>`
-          }
+          ${acao}
         </div>`;
       }).join('');
     }
 
-    // Histórico de partidas já ocorridas
+    // Histórico de partidas já concluídas — avaliar colegas com quem joguei
     const contHist = document.getElementById('lista-historico-jogador');
     if(passadas.length===0){
       contHist.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Nenhuma partida no histórico ainda.</div>`;
@@ -1053,9 +1140,15 @@
   // ---------- Avaliação ----------
   function abrirAvaliacao(partidaId){
     const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    const confirmados = partida.confirmados || [];
+    if(!confirmados.includes(usuarioLogado.id)){
+      alert('Só quem confirmou presença nessa partida pode avaliar os colegas dela.');
+      return;
+    }
     document.getElementById('avaliacao-partida-id').value = partidaId;
     document.getElementById('avaliacao-data-partida').textContent = `${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}`;
-    const colegas = partida.participantes.filter(id=>{
+    const colegas = confirmados.filter(id=>{
       if(id===usuarioLogado.id) return false;
       // "avaliavel:false" agora só controla ranking/prêmio (ver construirRanking).
       // Organizadores continuam podendo receber notas normalmente.
@@ -1182,12 +1275,17 @@
     cont.innerHTML = blocoProxima + blocoPreLista;
   }
 
-  // ---------- Listagem Próximo Jogo (lista de presença pública, até 12 vagas) ----------
+  // ---------- Listagem de partidas abertas (confirmação de presença pública, até 12 vagas cada) ----------
   function partidaMaisProxima(){
     const hoje = new Date().toISOString().slice(0,10);
-    const futuras = DB.partidas.filter(p=>p.data >= hoje)
+    const futuras = DB.partidas.filter(p=>p.data >= hoje && !partidaConcluida(p))
       .sort((a,b)=> a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario));
     return futuras[0] || null;
+  }
+
+  function partidasAbertas(){
+    return DB.partidas.filter(p=>!partidaConcluida(p))
+      .sort((a,b)=> a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario));
   }
 
   function abrirListaProximoJogo(){
@@ -1198,73 +1296,73 @@
 
   function renderizarListaProximoJogo(){
     const cont = document.getElementById('conteudo-lista-proximo-jogo');
-    const partida = partidaMaisProxima();
+    const partidas = partidasAbertas();
 
-    if(!partida){
-      cont.innerHTML = `<p class="text-center text-court-muted text-sm py-10">Nenhuma partida futura cadastrada no momento.</p>`;
+    if(!partidas.length){
+      cont.innerHTML = `<p class="text-center text-court-muted text-sm py-10">Nenhuma partida aberta no momento.</p>`;
       return;
     }
 
-    if(!partida.confirmados) partida.confirmados = [];
-    const jaConfirmado = usuarioLogado && partida.confirmados.includes(usuarioLogado.id);
-    const vagas = 12 - partida.confirmados.length;
-
-    if(!partida.pagos) partida.pagos = [];
     const ehAdmin = usuarioLogado && usuarioLogado.perfil==='admin';
 
-    const slots = Array.from({length:12}, (_, i)=>{
-      const uid = partida.confirmados[i];
-      if(uid){
-        const u = DB.usuarios.find(x=>x.id===uid);
-        const podeRemover = usuarioLogado && (usuarioLogado.id===uid || usuarioLogado.perfil==='admin');
-        const pago = partida.pagos.includes(uid);
-        const controlePagamento = ehAdmin
-          ? `<button onclick="alternarPagamento(${partida.id},${uid})" title="${pago ? 'Pagamento confirmado — clique para desmarcar' : 'Marcar como pago'}" class="text-lg leading-none ${pago ? '' : 'grayscale opacity-30'} hover:opacity-100 transition">✅</button>`
-          : (pago ? `<span class="text-lg leading-none" title="Pagamento confirmado">✅</span>` : '');
+    cont.innerHTML = partidas.map(partida=>{
+      if(!partida.confirmados) partida.confirmados = [];
+      if(!partida.pagos) partida.pagos = [];
+      const jaConfirmado = usuarioLogado && partida.confirmados.includes(usuarioLogado.id);
+      const vagas = 12 - partida.confirmados.length;
+
+      const slots = Array.from({length:12}, (_, i)=>{
+        const uid = partida.confirmados[i];
+        if(uid){
+          const u = DB.usuarios.find(x=>x.id===uid);
+          const podeRemover = usuarioLogado && (usuarioLogado.id===uid || usuarioLogado.perfil==='admin');
+          const pago = partida.pagos.includes(uid);
+          const controlePagamento = ehAdmin
+            ? `<button onclick="alternarPagamento(${partida.id},${uid})" title="${pago ? 'Pagamento confirmado — clique para desmarcar' : 'Marcar como pago'}" class="text-lg leading-none ${pago ? '' : 'grayscale opacity-30'} hover:opacity-100 transition">✅</button>`
+            : (pago ? `<span class="text-lg leading-none" title="Pagamento confirmado">✅</span>` : '');
+          return `
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-court-bg border border-court-line">
+            <span class="text-xs font-bold text-court-muted w-5 shrink-0">${i+1}.</span>
+            ${avatarHTML(u || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
+            <span class="text-sm font-medium text-court-ink truncate">${u ? u.nome : '—'}</span>
+            <div class="ml-auto flex items-center gap-2 shrink-0">
+              ${controlePagamento}
+              ${podeRemover ? `<button onclick="removerConfirmacao(${partida.id},${uid})" class="text-red-400 hover:text-red-600 text-xs p-1"><i class="fas fa-times"></i></button>` : ''}
+            </div>
+          </div>`;
+        }
         return `
-        <div class="flex items-center gap-2 p-2.5 rounded-lg bg-court-bg border border-court-line">
-          <span class="text-xs font-bold text-court-muted w-5 shrink-0">${i+1}.</span>
-          ${avatarHTML(u || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
-          <span class="text-sm font-medium text-court-ink truncate">${u ? u.nome : '—'}</span>
-          <div class="ml-auto flex items-center gap-2 shrink-0">
-            ${controlePagamento}
-            ${podeRemover ? `<button onclick="removerConfirmacao(${partida.id},${uid})" class="text-red-400 hover:text-red-600 text-xs p-1"><i class="fas fa-times"></i></button>` : ''}
-          </div>
+        <div class="flex items-center gap-2 p-2.5 rounded-lg border border-dashed border-court-line text-court-muted text-sm">
+          <span class="text-xs font-bold w-5 shrink-0">${i+1}.</span> Vaga livre
         </div>`;
+      }).join('');
+
+      let botao = '';
+      if(jaConfirmado){
+        botao = `<button onclick="removerConfirmacao(${partida.id}, ${usuarioLogado.id})" class="w-full bg-white border border-court-line hover:bg-gray-50 text-court-ink font-semibold py-3 rounded-xl transition"><i class="fas fa-times mr-2"></i>Cancelar minha presença</button>`;
+      } else if(vagas > 0){
+        botao = `<button onclick="confirmarPresenca(${partida.id})" class="w-full bg-court-coral hover:brightness-95 text-white font-bold py-3 rounded-xl transition shadow-md"><i class="fas fa-check mr-2"></i>Confirmar minha presença</button>`;
+      } else {
+        botao = `<p class="text-center text-sm text-court-muted">Lista completa (12/12).</p>`;
       }
+
       return `
-      <div class="flex items-center gap-2 p-2.5 rounded-lg border border-dashed border-court-line text-court-muted text-sm">
-        <span class="text-xs font-bold w-5 shrink-0">${i+1}.</span> Vaga livre
-      </div>`;
-    }).join('');
-
-    let botao = '';
-    if(jaConfirmado){
-      botao = `<button onclick="removerConfirmacao(${partida.id}, ${usuarioLogado.id})" class="w-full bg-white border border-court-line hover:bg-gray-50 text-court-ink font-semibold py-3 rounded-xl transition"><i class="fas fa-times mr-2"></i>Cancelar minha presença</button>`;
-    } else if(vagas > 0){
-      botao = `<button onclick="confirmarPresenca(${partida.id})" class="w-full bg-court-coral hover:brightness-95 text-white font-bold py-3 rounded-xl transition shadow-md"><i class="fas fa-check mr-2"></i>Confirmar minha presença</button>`;
-    } else {
-      botao = `<p class="text-center text-sm text-court-muted">Lista completa (12/12).</p>`;
-    }
-
-    cont.innerHTML = `
-      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-teal mb-6">
-        <div class="flex items-start justify-between gap-2 flex-wrap">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-8">
+        <div class="flex items-start justify-between gap-2 flex-wrap mb-4">
           <div>
-            <p class="text-xs font-bold text-court-muted uppercase tracking-wider mb-1">Próximo Jogo</p>
             <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
             <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
+            <p class="text-sm font-semibold text-court-teal mt-2">${partida.confirmados.length}/12 confirmados <span class="text-court-muted font-normal">·</span> <span class="text-emerald-600">${partida.pagos.length} pagaram ✅</span></p>
           </div>
           <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
             ${ehAdmin ? `<button onclick="copiarPreListaWhatsapp(${partida.id})" class="text-xs font-semibold text-emerald-600 hover:underline"><i class="fab fa-whatsapp mr-1"></i>Copiar p/ WhatsApp</button>` : ''}
             ${ehAdmin ? `<button onclick="copiarCobrancaWhatsapp(${partida.id})" class="text-xs font-semibold text-court-coral hover:underline"><i class="fas fa-coins mr-1"></i>Cobrar pagamento</button>` : ''}
           </div>
         </div>
-        <p class="text-sm font-semibold text-court-teal mt-3">${partida.confirmados.length}/12 confirmados <span class="text-court-muted font-normal">·</span> <span class="text-emerald-600">${partida.pagos.length} pagaram ✅</span></p>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">${slots}</div>
-      ${botao}
-    `;
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">${slots}</div>
+        ${botao}
+      </div>`;
+    }).join('');
   }
 
   // Monta um texto pronto com a pré-lista e copia para a área de transferência,
@@ -1360,7 +1458,7 @@
     if(partida.confirmados.length >= 12){ alert('A lista já está completa (12/12).'); return; }
     partida.confirmados.push(usuarioLogado.id);
     salvarEstado();
-    renderizarListaProximoJogo();
+    atualizarTelaAtual();
   }
 
   // ---------- Sugestões (qualquer usuário logado pode enviar e ver) ----------
@@ -1430,7 +1528,7 @@
     partida.confirmados = (partida.confirmados || []).filter(id=>id!==userId);
     partida.pagos = (partida.pagos || []).filter(id=>id!==userId);
     salvarEstado();
-    renderizarListaProximoJogo();
+    atualizarTelaAtual();
   }
 
   // Admin marca/desmarca o pagamento de um jogador confirmado no próximo jogo
@@ -1515,14 +1613,6 @@
   }
 
   // ---------- Admin: Partidas ----------
-  function renderizarCheckboxesJogadores(){
-    const cont = document.getElementById('partida-checkboxes-jogadores');
-    cont.innerHTML = DB.usuarios.filter(u=>u.ativo).map(u=>`
-      <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" value="${u.id}" class="checkbox-participante w-4 h-4 text-court-teal rounded"> ${u.nome}
-      </label>`).join('');
-  }
-
   const VALOR_NOVO = '__novo__';
 
   function renderizarOpcoesLocais(selecionado){
@@ -1573,23 +1663,19 @@
     const local = document.getElementById('part-local').value;
     const quadra = document.getElementById('part-quadra').value;
     const obs = document.getElementById('part-obs').value.trim();
-    const participantes = [...document.querySelectorAll('.checkbox-participante:checked')].map(c=>Number(c.value));
-
-    if(participantes.length===0){ alert('Selecione ao menos um participante.'); return; }
 
     if(id){
       const p = DB.partidas.find(x=>x.id===Number(id));
-      Object.assign(p, {data, horario, local, quadra, obs, participantes});
+      Object.assign(p, {data, horario, local, quadra, obs});
     } else {
       const novoId = DB.partidas.length ? Math.max(...DB.partidas.map(p=>p.id))+1 : 101;
-      DB.partidas.push({id: novoId, data, horario, local, quadra, obs, participantes});
+      DB.partidas.push({id: novoId, data, horario, local, quadra, obs, status: 'aberta', confirmados: [], pagos: []});
     }
 
     salvarEstado();
     event.target.reset();
     document.getElementById('part-id').value = '';
     document.getElementById('titulo-form-partida').textContent = 'Cadastrar Nova Partida';
-    renderizarCheckboxesJogadores();
     renderizarOpcoesLocais(DB.locais[0]);
     renderizarOpcoesQuadras(DB.quadras[0]);
     renderizarTabelaPartidas();
@@ -1603,11 +1689,6 @@
     renderizarOpcoesLocais(p.local);
     renderizarOpcoesQuadras(p.quadra);
     document.getElementById('part-obs').value = p.obs;
-    renderizarCheckboxesJogadores();
-    p.participantes.forEach(pid=>{
-      const cb = document.querySelector(`.checkbox-participante[value="${pid}"]`);
-      if(cb) cb.checked = true;
-    });
     document.getElementById('titulo-form-partida').textContent = 'Editar Partida';
     window.scrollTo({top:0, behavior:'smooth'});
   }
@@ -1620,17 +1701,43 @@
     renderizarTabelaPartidas();
   }
 
+  // Uma partida é considerada concluída (vai pro histórico, libera avaliação)
+  // quando o admin marca manualmente OU quando a data já passou.
+  function partidaConcluida(p){
+    const hoje = new Date().toISOString().slice(0,10);
+    return p.status === 'concluida' || p.data < hoje;
+  }
+
+  // Admin marca/desmarca uma partida como concluída manualmente — não precisa
+  // esperar a data passar pra liberar a avaliação dos colegas.
+  function alternarStatusPartida(id){
+    const p = DB.partidas.find(x=>x.id===id);
+    if(!p) return;
+    p.status = (p.status === 'concluida') ? 'aberta' : 'concluida';
+    salvarEstado();
+    renderizarTabelaPartidas();
+  }
+
   function renderizarTabelaPartidas(){
     const tbody = document.getElementById('tabela-admin-partidas');
     tbody.innerHTML = [...DB.partidas].sort((a,b)=>a.data.localeCompare(b.data)).map(p=>{
-      const nomes = p.participantes.map(id=>DB.usuarios.find(u=>u.id===id)?.nome || '—').join(', ');
+      const confirmados = p.confirmados || [];
+      const nomes = confirmados.length
+        ? confirmados.map(id=>DB.usuarios.find(u=>u.id===id)?.nome || '—').join(', ')
+        : '<span class="text-court-muted">Ninguém ainda</span>';
+      const concluida = partidaConcluida(p);
+      const statusBadge = concluida
+        ? `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">Concluída</span>`
+        : `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">Aberta</span>`;
       return `
       <tr>
         <td class="p-3 sm:p-4 font-medium text-court-ink whitespace-nowrap">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</td>
         <td class="p-3 sm:p-4 text-court-muted whitespace-nowrap">${p.local}</td>
         <td class="p-3 sm:p-4 text-court-muted whitespace-nowrap">${p.quadra || '—'}</td>
-        <td class="p-3 sm:p-4 text-court-muted text-xs">${nomes}</td>
+        <td class="p-3 sm:p-4 text-court-muted text-xs">${nomes} <span class="text-court-muted">(${confirmados.length}/12)</span></td>
+        <td class="p-3 sm:p-4 whitespace-nowrap">${statusBadge}</td>
         <td class="p-3 sm:p-4 text-right whitespace-nowrap space-x-3">
+          <button onclick="alternarStatusPartida(${p.id})" title="${concluida ? 'Reabrir partida' : 'Marcar como concluída'}" class="text-xs font-semibold ${concluida ? 'text-court-teal' : 'text-gray-500'} hover:underline">${concluida ? 'Reabrir' : 'Concluir'}</button>
           <button onclick="editarPartida(${p.id})" class="text-court-teal hover:text-court-ink p-1"><i class="fas fa-pen"></i></button>
           <button onclick="removerPartida(${p.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
         </td>
@@ -1687,15 +1794,140 @@
   }
 
   // ---------- Ranking (usado pelo Admin e também pelo jogador em "Notas Gerais") ----------
-  function construirRanking(){
+  // Sem "mesFiltro", considera o histórico completo (usado na Classificação Geral).
+  // Com "mesFiltro" (formato "YYYY-MM"), considera só avaliações de partidas daquele mês
+  // (usado na apuração do brinde mensal e no hall da fama).
+  function construirRanking(mesFiltro){
     // Organizadores (avaliavel:false) e qualquer perfil "admin" nunca entram
     // no ranking nem concorrem ao brinde, mesmo que tenham recebido notas.
     return DB.usuarios.filter(u=>u.avaliavel !== false && u.perfil !== 'admin').map(u=>{
-      const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===u.id);
+      const recebidas = DB.avaliacoes.filter(a=>{
+        if(a.jogadorId!==u.id) return false;
+        if(!mesFiltro) return true;
+        const partida = DB.partidas.find(p=>p.id===a.partidaId);
+        return partida && partida.data.startsWith(mesFiltro);
+      });
       const media = recebidas.length ? recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length : 0;
-      const partidasDisputadas = DB.partidas.filter(p=>p.participantes.includes(u.id)).length;
+      const partidasDisputadas = DB.partidas.filter(p=>(p.confirmados||[]).includes(u.id) && (!mesFiltro || p.data.startsWith(mesFiltro))).length;
       return {u, media, partidasDisputadas, avaliacoesRecebidas: recebidas.length};
     }).filter(r=>r.avaliacoesRecebidas>0).sort((a,b)=>b.media-a.media);
+  }
+
+  // Monta, mês a mês, quem teria vencido o brinde — usado no Hall da Fama.
+  // Não guarda nada à parte: é sempre recalculado em cima das avaliações e
+  // partidas já existentes, então nunca fica desatualizado.
+  function construirHistoricoBrindes(){
+    const mesAtual = new Date().toISOString().slice(0,7);
+    const meses = new Set();
+    DB.avaliacoes.forEach(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      if(partida) meses.add(partida.data.slice(0,7));
+    });
+    return [...meses]
+      .filter(m=>m < mesAtual) // o mês corrente ainda está em andamento, não entra no hall da fama
+      .sort((a,b)=>b.localeCompare(a))
+      .map(mes=>{
+        const ranking = construirRanking(mes);
+        return ranking.length ? {mes, vencedor: ranking[0].u, media: ranking[0].media} : null;
+      })
+      .filter(Boolean);
+  }
+
+  function nomeMesAno(mesStr){
+    const [ano, mes] = mesStr.split('-').map(Number);
+    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return `${nomes[mes-1]}/${ano}`;
+  }
+
+  function renderizarHistoricoBrindes(){
+    const cont = document.getElementById('lista-hall-fama');
+    if(!cont) return;
+    const historico = construirHistoricoBrindes();
+    if(!historico.length){
+      cont.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Ainda não há nenhum mês fechado no histórico.</div>`;
+      return;
+    }
+    cont.innerHTML = historico.map(h=>`
+      <div class="p-4 flex items-center gap-3">
+        <span class="text-lg">🏆</span>
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          ${avatarHTML(h.vencedor, 'w-8 h-8 text-xs')}
+          <div class="min-w-0">
+            <p class="font-semibold text-court-ink text-sm truncate">${h.vencedor.nome}</p>
+            <p class="text-xs text-court-muted">${nomeMesAno(h.mes)}</p>
+          </div>
+        </div>
+        <span class="text-court-coral font-bold shrink-0">${h.media.toFixed(2)}<span class="text-xs text-court-muted">/10</span></span>
+      </div>`).join('');
+  }
+
+  // Calcula a média mensal de um jogador (uma nota média por mês em que
+  // recebeu avaliação), pronta para o gráfico de evolução.
+  function mediaMensalJogador(jogadorId){
+    const porMes = {};
+    DB.avaliacoes.filter(a=>a.jogadorId===jogadorId).forEach(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      if(!partida) return;
+      const mes = partida.data.slice(0,7);
+      if(!porMes[mes]) porMes[mes] = [];
+      porMes[mes].push(a.nota);
+    });
+    return Object.keys(porMes).sort().map(mes=>({
+      mes,
+      media: porMes[mes].reduce((s,n)=>s+n,0) / porMes[mes].length
+    }));
+  }
+
+  // Desenha um gráfico de linha simples (SVG puro, sem biblioteca externa)
+  // com a evolução da média mês a mês.
+  function renderizarGraficoEvolucao(containerId, dadosMensais){
+    const cont = document.getElementById(containerId);
+    if(!cont) return;
+    if(!dadosMensais.length){
+      cont.innerHTML = `<p class="text-sm text-court-muted text-center py-8">Ainda não há avaliações suficientes para montar o gráfico.</p>`;
+      return;
+    }
+    const W = 640, H = 220, PAD_X = 36, PAD_Y = 30;
+    const max = 10, min = 0;
+    const passoX = dadosMensais.length > 1 ? (W - 2*PAD_X) / (dadosMensais.length - 1) : 0;
+    const pontos = dadosMensais.map((d,i)=>{
+      const x = dadosMensais.length > 1 ? PAD_X + i*passoX : W/2;
+      const y = (H - PAD_Y) - ((d.media - min) / (max - min)) * (H - 2*PAD_Y);
+      return {x, y, ...d};
+    });
+    const linha = pontos.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const labels = pontos.map(p=>{
+      const [ano, mes] = p.mes.split('-');
+      return `<text x="${p.x.toFixed(1)}" y="${H-8}" font-size="10" text-anchor="middle" fill="#8a8a8a">${nomesMes[Number(mes)-1]}/${ano.slice(2)}</text>`;
+    }).join('');
+    const pontosCirculos = pontos.map(p=>`
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#0d9488"/>
+      <text x="${p.x.toFixed(1)}" y="${(p.y-10).toFixed(1)}" font-size="11" text-anchor="middle" fill="#0d9488" font-weight="bold">${p.media.toFixed(1)}</text>
+    `).join('');
+    cont.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto" style="max-height:240px">
+        <line x1="${PAD_X}" y1="${H-PAD_Y}" x2="${W-PAD_X}" y2="${H-PAD_Y}" stroke="#e5e5e5"/>
+        <line x1="${PAD_X}" y1="${PAD_Y}" x2="${PAD_X}" y2="${H-PAD_Y}" stroke="#e5e5e5"/>
+        ${dadosMensais.length > 1 ? `<polyline points="${linha}" fill="none" stroke="#0d9488" stroke-width="2.5"/>` : ''}
+        ${pontosCirculos}
+        ${labels}
+      </svg>`;
+  }
+
+  function popularSeletorGraficoJogador(){
+    const sel = document.getElementById('grafico-jogador-select');
+    if(!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = DB.usuarios.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('');
+    sel.value = atual || (usuarioLogado ? usuarioLogado.id : DB.usuarios[0]?.id);
+  }
+
+  function renderizarGraficoJogadorSelecionado(){
+    const sel = document.getElementById('grafico-jogador-select');
+    if(!sel || !sel.value) return;
+    const dados = mediaMensalJogador(Number(sel.value));
+    renderizarGraficoEvolucao('grafico-evolucao-media', dados);
   }
 
   function renderizarRanking(){
@@ -1711,16 +1943,22 @@
         <td class="p-4 text-center text-court-muted">${r.avaliacoesRecebidas}</td>
       </tr>`).join('') || `<tr><td colspan="5" class="p-6 text-center text-court-muted text-sm">Ainda não há avaliações registradas.</td></tr>`;
 
+    const mesAtual = new Date().toISOString().slice(0,7);
+    const rankingMesAtual = construirRanking(mesAtual);
     const box = document.getElementById('resultado-brinde-box');
-    if(ranking.length){
-      const vencedor = ranking[0];
+    if(rankingMesAtual.length){
+      const vencedor = rankingMesAtual[0];
       box.innerHTML = `
-        <p class="text-sm text-court-muted mb-1">Jogador(a) com a melhor média geral:</p>
+        <p class="text-sm text-court-muted mb-1">Jogador(a) com a melhor média em ${nomeMesAno(mesAtual)}:</p>
         <p class="text-2xl font-display font-bold text-court-ink">${vencedor.u.nome}</p>
         <p class="text-court-coral font-bold text-lg">${vencedor.media.toFixed(2)}<span class="text-sm text-court-muted">/10</span></p>`;
     } else {
-      box.innerHTML = `<p class="text-sm text-court-muted">Ainda não há avaliações suficientes para apurar o brinde.</p>`;
+      box.innerHTML = `<p class="text-sm text-court-muted">Ainda não há avaliações suficientes neste mês para apurar o brinde.</p>`;
     }
+
+    popularSeletorGraficoJogador();
+    renderizarGraficoJogadorSelecionado();
+    renderizarHistoricoBrindes();
   }
 
   // Mesma classificação geral, só que exibida na tela do jogador (somente leitura)
@@ -1753,6 +1991,8 @@
 
     const media = recebidas.length ? (recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length).toFixed(2) : '0.00';
     document.getElementById('minha-media-avaliacoes').textContent = media;
+
+    renderizarGraficoEvolucao('grafico-evolucao-minha-media', mediaMensalJogador(usuarioLogado.id));
 
     if(!recebidas.length){
       cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Você ainda não recebeu nenhuma avaliação.</div>`;
