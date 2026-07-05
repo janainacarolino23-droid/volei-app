@@ -505,8 +505,8 @@
                 <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer">
                   <input type="checkbox" id="jog-ativo" checked class="w-4 h-4 text-court-teal rounded"> Ativo
                 </label>
-                <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer" title="Organizadores não recebem avaliações e não concorrem ao brinde">
-                  <input type="checkbox" id="jog-coordenador" class="w-4 h-4 text-court-teal rounded"> Organizador (não avaliado / não concorre)
+                <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer" title="Organizadores continuam recebendo notas normalmente, só não entram no ranking nem concorrem ao brinde">
+                  <input type="checkbox" id="jog-coordenador" class="w-4 h-4 text-court-teal rounded"> Organizador (recebe nota, mas não concorre ao brinde)
                 </label>
                 <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
                   Salvar
@@ -1057,8 +1057,10 @@
     document.getElementById('avaliacao-data-partida').textContent = `${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}`;
     const colegas = partida.participantes.filter(id=>{
       if(id===usuarioLogado.id) return false;
+      // "avaliavel:false" agora só controla ranking/prêmio (ver construirRanking).
+      // Organizadores continuam podendo receber notas normalmente.
       const jog = DB.usuarios.find(u=>u.id===id);
-      return jog && jog.avaliavel !== false;
+      return !!jog;
     });
     const cont = document.getElementById('lista-colegas-avaliacao');
 
