@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1F6F6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Família Vôlei">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Família Vôlei - Avaliação de Jogadores</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          'court-bg': '#F5EFE1',
+          'court-ink': '#182B3A',
+          'court-teal': '#1F6F6B',
+          'court-teal-dark': '#154F4C',
+          'court-coral': '#E8623D',
+          'court-line': '#DED2B8',
+          'court-muted': '#6B6252'
+        },
+        fontFamily: {
+          display: ['"Fraunces"', 'serif'],
+          body: ['"Inter"', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Firebase (Firestore) — usado para salvar tudo online e sincronizar entre celulares -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .font-display { font-family: 'Fraunces', serif; }
+  .net-divider {
+    height: 5px;
+    background-image: repeating-linear-gradient(90deg, #18314533 0 10px, transparent 10px 20px);
+    border-radius: 2px;
+  }
+  .net-divider.light {
+    background-image: repeating-linear-gradient(90deg, #ffffff55 0 10px, transparent 10px 20px);
+  }
+  @keyframes bola-quica {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    20% { transform: translateY(-10px) rotate(-18deg); }
+    40% { transform: translateY(0) rotate(0deg); }
+    60% { transform: translateY(-5px) rotate(10deg); }
+    80% { transform: translateY(0) rotate(0deg); }
+  }
+  .bola-animada {
+    display: inline-block;
+    animation: bola-quica 2.6s ease-in-out infinite;
+  }
+</style>
+</head>
+<body class="bg-court-bg font-body text-court-ink min-h-screen">
+
+<div id="firebase-erro-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-center text-sm py-2 z-50 px-3">
+  <i class="fas fa-triangle-exclamation mr-1"></i> Não foi possível conectar ao Firebase. Verifique a configuração (firebaseConfig) e a internet.
+</div>
+
+<script>
+  // =====================================================================
+  // CONFIGURAÇÃO DO FIREBASE
+  // Troque os valores abaixo pelos dados do SEU projeto Firebase.
+  // Passo a passo completo: veja a conversa / README que te enviei.
+  // =====================================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyBj9JskW4G50_ziM1NLh3EX0EnoEluJx3A",
+    authDomain: "familia-volei.firebaseapp.com",
+    projectId: "familia-volei",
+    storageBucket: "familia-volei.firebasestorage.app",
+    messagingSenderId: "250165693676",
+    appId: "1:250165693676:web:3ada372301612d336329c9"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const dbFirestore = firebase.firestore();
+
+  // Documento único no Firestore onde TODO o estado do app é salvo.
+  const DOC_REF = dbFirestore.collection('familiaVolei').doc('estado');
+
+  // Dados iniciais — usados apenas na PRIMEIRA vez, para "semear" o Firestore
+  // caso o documento ainda não exista. Depois disso, quem manda é o Firestore.
+  const DADOS_INICIAIS = {
+    usuarios: [
+      { id: 1,  nome: "Janaína",  usuario: "janaina",  senha: "Janaina@Volei26",  perfil: "admin",   ativo: true, foto: "", avaliavel: false },
+      { id: 2,  nome: "Jairo",    usuario: "jairo",    senha: "Jairo@Volei26",    perfil: "jogador", ativo: true, foto: "" },
+      { id: 3,  nome: "Valtinho", usuario: "valtinho", senha: "Valtinho@Volei26", perfil: "jogador", ativo: true, foto: "", avaliavel: false },
+      { id: 4,  nome: "Mariana",  usuario: "mariana",  senha: "Mariana@Volei26",  perfil: "jogador", ativo: true, foto: "" },
+      { id: 5,  nome: "Jéssica",  usuario: "jessica",  senha: "Jessica@Volei26",  perfil: "jogador", ativo: true, foto: "" },
+      { id: 6,  nome: "José",     usuario: "jose",     senha: "Jose@Volei26",     perfil: "jogador", ativo: true, foto: "" },
+      { id: 7,  nome: "Geysy",    usuario: "geysy",    senha: "Geysy@Volei26",    perfil: "jogador", ativo: true, foto: "" },
+      { id: 8,  nome: "Geiliene", usuario: "geiliene", senha: "Geiliene@Volei26", perfil: "jogador", ativo: true, foto: "" },
+      { id: 9,  nome: "Bianca",   usuario: "bianca",   senha: "Bianca@Volei26",   perfil: "jogador", ativo: true, foto: "" },
+      { id: 10, nome: "Julia",    usuario: "julia",    senha: "Julia@Volei26",    perfil: "jogador", ativo: true, foto: "" },
+      { id: 11, nome: "Ariane",   usuario: "ariane",   senha: "Ariane@Volei26",   perfil: "jogador", ativo: true, foto: "" },
+      { id: 12, nome: "Kauã",     usuario: "kaua",     senha: "Kaua@Volei26",     perfil: "jogador", ativo: true, foto: "" },
+      { id: 13, nome: "Yuri",     usuario: "yuri",     senha: "Yuri@Volei26",     perfil: "jogador", ativo: true, foto: "" },
+      { id: 14, nome: "Pedro",    usuario: "pedro",    senha: "Pedro@Volei26",    perfil: "jogador", ativo: true, foto: "" }
+    ],
+    partidas: [
+      { id: 101, data: "2026-07-10", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Jogo regular", status: "aberta", confirmados: [2,3,4,5,6,7,8], pagos: [] },
+      { id: 102, data: "2026-07-17", horario: "19:30", local: "Praia Clube Sports", quadra: "Quadra 8", obs: "", status: "aberta", confirmados: [2,4,9,10,11,12,13,14], pagos: [] },
+      { id: 103, data: "2026-07-24", horario: "21:00", local: "Praia Clube Sports", quadra: "Quadra 9", obs: "", status: "aberta", confirmados: [3,5,6,9,12,13,14], pagos: [] },
+      { id: 104, data: "2026-07-31", horario: "20:00", local: "Praia Clube Sports", quadra: "Quadra 7", obs: "Final do mês", status: "aberta", confirmados: [2,3,5,6,9,11,13,14], pagos: [] }
+    ],
+    locais: ["Praia Clube Sports"],
+    quadras: ["Quadra 7", "Quadra 8", "Quadra 9"],
+    avaliacoes: [],
+    sugestoes: []
+  };
+
+  // DB começa vazio; é preenchido assim que o Firestore responder.
+  let DB = { usuarios: [], partidas: [], locais: [], quadras: [], avaliacoes: [], sugestoes: [] };
+  let usuarioLogado = null;
+  let firebasePronto = false;
+
+  // ---------- Carregar / sincronizar com o Firestore ----------
+  function iniciarSincronizacaoFirebase(){
+    DOC_REF.get().then(snap=>{
+      if(!snap.exists){
+        // Primeira vez: cria o documento no Firestore com os dados iniciais
+        DOC_REF.set(DADOS_INICIAIS).then(()=>{
+          console.log('Firestore semeado com os dados iniciais.');
+        });
+      }
+      // Escuta mudanças em tempo real (inclusive as que vieram de outros celulares)
+      DOC_REF.onSnapshot(docSnap=>{
+        if(!docSnap.exists) return;
+        const dados = docSnap.data();
+        const eraPrimeiraCarga = !firebasePronto;
+        const dbAntes = eraPrimeiraCarga ? null : JSON.parse(JSON.stringify(DB));
+        DB.usuarios   = dados.usuarios   || [];
+        DB.partidas   = dados.partidas   || [];
+        DB.locais     = dados.locais     || [];
+        DB.quadras    = dados.quadras    || [];
+        DB.avaliacoes = dados.avaliacoes || [];
+        DB.sugestoes  = dados.sugestoes  || [];
+        firebasePronto = true;
+        if(!eraPrimeiraCarga) verificarAvisos(dbAntes, DB);
+        atualizarTelaAtual();
+      }, err=>{
+        console.error('Erro ao sincronizar com o Firestore:', err);
+        mostrarErroFirebase();
+      });
+    }).catch(err=>{
+      console.error('Erro ao conectar ao Firestore:', err);
+      mostrarErroFirebase();
+    });
+  }
+
+  function mostrarErroFirebase(){
+    const el = document.getElementById('firebase-erro-banner');
+    if(el) el.classList.remove('hidden');
+  }
+
+  // Salva o estado inteiro (DB) no Firestore. Chame sempre após alterar dados.
+  function salvarEstado(){
+    DOC_REF.set(DB).catch(err=>{
+      console.error('Erro ao salvar no Firestore:', err);
+      alert('Não foi possível salvar online agora. Verifique sua conexão com a internet.');
+    });
+  }
+
+  // Re-renderiza a tela visível no momento, para refletir dados novos vindos de outro aparelho
+  function atualizarTelaAtual(){
+    if(!usuarioLogado){
+      return;
+    }
+    const telaJogadorVisivel = !document.getElementById('tela-jogador').classList.contains('hidden');
+    const telaAdminVisivel = !document.getElementById('tela-admin').classList.contains('hidden');
+    const telaListaProximoVisivel = !document.getElementById('tela-lista-proximo-jogo').classList.contains('hidden');
+    const telaVisaoGeralVisivel = !document.getElementById('tela-visao-geral').classList.contains('hidden');
+    const telaSugestoesVisivel = !document.getElementById('tela-sugestoes').classList.contains('hidden');
+
+    if(telaListaProximoVisivel) renderizarListaProximoJogo();
+    if(telaVisaoGeralVisivel) renderizarVisaoGeral();
+    if(telaSugestoesVisivel) renderizarSugestoes();
+
+    if(telaJogadorVisivel){
+      const subJogVisivel = [...document.querySelectorAll('.sub-jogador-pane')].find(p=>!p.classList.contains('hidden'));
+      if(subJogVisivel && subJogVisivel.id==='sub-jogador-ranking'){
+        renderizarRankingJogador();
+      } else if(subJogVisivel && subJogVisivel.id==='sub-jogador-avaliacoes'){
+        renderizarMinhasAvaliacoes();
+      } else {
+        renderizarPainelJogador();
+      }
+    }
+    if(telaAdminVisivel){
+      const subVisivel = [...document.querySelectorAll('.sub-admin-pane')].find(p=>!p.classList.contains('hidden'));
+      if(subVisivel){
+        const sub = subVisivel.id.replace('sub-admin-','');
+        if(sub==='jogadores') renderizarTabelaJogadores();
+        if(sub==='partidas') renderizarTabelaPartidas();
+        if(sub==='avaliacoes') renderizarAbaAvaliacoes();
+        if(sub==='ranking') renderizarRanking();
+        if(sub==='exportar') renderizarExportar();
+      }
+    }
+  }
+
+  iniciarSincronizacaoFirebase();
+</script>
+
+<header id="main-nav" class="bg-court-teal text-white shadow-md hidden mb-6 sm:mb-8">
+  <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
+    <button onclick="irParaTelaPrincipal()" class="text-base sm:text-xl font-display font-semibold flex items-center gap-2 truncate hover:opacity-90 transition">
+      <i class="fas fa-volleyball shrink-0"></i> <span class="truncate">Família Vôlei</span>
+    </button>
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div id="nav-user-avatar"></div>
+      <span id="nav-user-name" class="font-medium text-xs sm:text-sm max-w-[90px] sm:max-w-none truncate"></span>
+      <button onclick="abrirMenu()" class="bg-court-teal-dark hover:brightness-110 w-9 h-9 rounded-lg flex items-center justify-center transition" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </div>
+  <div class="net-divider light"></div>
+</header>
+
+<!-- MENU LATERAL (aparece por cima de tudo, com ícone + texto sempre visíveis) -->
+<div id="menu-overlay" onclick="fecharMenu()" class="fixed inset-0 bg-black/40 z-40 hidden"></div>
+<aside id="menu-lateral" class="fixed top-0 right-0 h-full w-72 max-w-[85vw] bg-white shadow-2xl z-50 translate-x-full transition-transform duration-300 flex flex-col">
+  <div class="bg-court-teal text-white p-4 flex items-center justify-between shrink-0">
+    <span class="font-display font-semibold text-lg flex items-center gap-2"><i class="fas fa-volleyball"></i> Menu</span>
+    <button onclick="fecharMenu()" class="w-8 h-8 flex items-center justify-center hover:bg-court-teal-dark rounded-lg transition" aria-label="Fechar menu">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+    <button onclick="fecharMenu(); abrirVisaoGeral();" class="w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-house w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Visão Geral</span></span>
+    </button>
+    <button onclick="fecharMenu(); abrirListaProximoJogo();" class="w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-list-check w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Partidas Abertas</span></span>
+    </button>
+    <button onclick="fecharMenu(); abrirSugestoes();" class="w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-comment-dots w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Sugestões</span></span>
+    </button>
+    <button onclick="fecharMenu(); abrirAreaJogador();" id="btn-nav-area-jogador" class="hidden w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-star w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Avaliar / Minhas Partidas</span></span>
+    </button>
+    <button onclick="pedirPermissaoNotificacao()" id="btn-nav-notificacoes" class="hidden w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
+      <span class="flex items-center gap-3"><i class="fas fa-bell w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Ativar Avisos</span></span>
+    </button>
+
+    <div id="menu-admin-secao" class="hidden">
+      <p class="text-xs font-bold text-court-muted px-3 uppercase tracking-wider mt-4 mb-1 pt-3 border-t border-court-line">Painel Admin</p>
+      <button onclick="irParaAdmin('jogadores')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn bg-court-teal/10 text-court-teal" id="btn-sub-jogadores">
+        <span class="flex items-center gap-3"><i class="fas fa-users w-5 text-center"></i><span class="font-medium text-sm">Jogadores</span></span>
+      </button>
+      <button onclick="irParaAdmin('partidas')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-partidas">
+        <span class="flex items-center gap-3"><i class="fas fa-calendar-alt w-5 text-center"></i><span class="font-medium text-sm">Partidas</span></span>
+      </button>
+      <button onclick="irParaAdmin('avaliacoes')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-avaliacoes">
+        <span class="flex items-center gap-3"><i class="fas fa-star w-5 text-center"></i><span class="font-medium text-sm">Avaliações</span></span>
+      </button>
+      <button onclick="irParaAdmin('ranking')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-ranking">
+        <span class="flex items-center gap-3"><i class="fas fa-trophy w-5 text-center"></i><span class="font-medium text-sm">Ranking &amp; Brinde</span></span>
+      </button>
+      <button onclick="irParaAdmin('exportar')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-exportar">
+        <span class="flex items-center gap-3"><i class="fas fa-code w-5 text-center"></i><span class="font-medium text-sm">Exportar Dados</span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="p-3 border-t border-court-line shrink-0">
+    <button onclick="fecharMenu(); logout();" class="w-full text-left px-3 py-3 rounded-lg text-red-500 hover:bg-red-50 transition">
+      <span class="flex items-center gap-3"><i class="fas fa-sign-out-alt w-5 text-center"></i><span class="font-medium text-sm">Sair</span></span>
+    </button>
+  </div>
+</aside>
+
+<main class="container mx-auto px-3 sm:px-4 max-w-6xl pb-16">
+
+  <!-- VISÃO GERAL -->
+  <section id="tela-visao-geral" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
+        <i class="fas fa-house mr-1"></i> Visão Geral
+      </span>
+    </div>
+    <div id="conteudo-visao-geral" class="space-y-6"></div>
+  </section>
+
+  <!-- LOGIN -->
+  <section id="tela-login" class="max-w-md mx-auto mt-8 sm:mt-16 bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-court-line">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-court-teal/10 text-court-teal rounded-full mb-4">
+        <i class="fas fa-volleyball text-3xl bola-animada"></i>
+      </div>
+      <h1 class="text-3xl font-display font-semibold text-court-ink">Família Vôlei</h1>
+      <p class="text-court-muted text-sm mt-1 leading-snug">Nosso espaço, nossos jogos,<br>nossa família.</p>
+
+      <div class="flex items-center justify-center gap-4 mt-5">
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-calendar-alt"></i></div>
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-list-check"></i></div>
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-star"></i></div>
+        <div class="w-9 h-9 rounded-full bg-court-teal/10 text-court-teal flex items-center justify-center text-sm"><i class="fas fa-coins"></i></div>
+      </div>
+      <p class="text-xs text-court-muted mt-2">Partidas · Presença · Avaliações · Pagamentos</p>
+    </div>
+
+    <form onsubmit="login(event)" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-court-ink mb-1">Usuário</label>
+        <div class="relative">
+          <span class="absolute left-0 top-0 h-full px-3 flex items-center text-court-muted"><i class="fas fa-user"></i></span>
+          <input type="text" id="login-username" required placeholder="Digite seu usuário" class="w-full pl-10 pr-3 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-court-ink mb-1">Senha</label>
+        <div class="relative">
+          <span class="absolute left-0 top-0 h-full px-3 flex items-center text-court-muted"><i class="fas fa-lock"></i></span>
+          <input type="password" id="login-password" required placeholder="Digite sua senha" class="w-full pl-10 pr-10 py-2 border border-court-line rounded-lg focus:ring-2 focus:ring-court-teal focus:border-court-teal outline-none">
+          <button type="button" onclick="alternarSenhaVisivel()" tabindex="-1" class="absolute right-0 top-0 h-full px-3 text-court-muted hover:text-court-ink">
+            <i id="icone-olho-senha" class="far fa-eye"></i>
+          </button>
+        </div>
+      </div>
+      <div id="login-erro" class="text-red-500 text-sm font-medium hidden">
+        <i class="fas fa-exclamation-circle"></i> Usuário ou senha inválidos.
+      </div>
+      <button type="submit" class="w-full bg-court-coral hover:brightness-95 text-white font-semibold py-2.5 rounded-lg transition shadow-sm">
+        Entrar
+      </button>
+    </form>
+
+    <div id="botao-instalar-app-container" class="hidden mt-5 pt-4 border-t border-court-line text-center">
+      <button id="botao-instalar-app" onclick="instalarApp()" type="button" class="w-full bg-court-teal/10 hover:bg-court-teal/20 text-court-teal font-semibold py-2.5 rounded-lg transition text-sm">
+        <i class="fas fa-download mr-2"></i> Baixar / Instalar aplicativo
+      </button>
+      <p id="dica-instalar-ios" class="hidden text-xs text-court-muted mt-2">
+        No iPhone: toque em <i class="fas fa-arrow-up-from-bracket"></i> Compartilhar e depois em "Adicionar à Tela de Início".
+      </p>
+    </div>
+  </section>
+
+  <!-- PAINEL JOGADOR -->
+  <section id="tela-jogador" class="hidden max-w-2xl mx-auto">
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-6">
+      <div class="flex items-center gap-3 sm:gap-4">
+        <div id="jogador-avatar"></div>
+        <div>
+          <h2 class="text-2xl font-display font-semibold text-court-ink">Bem-vindo(a), <span id="jogador-nome" class="text-court-teal"></span>!</h2>
+          <p class="text-court-muted text-sm mt-1">Abaixo estão as suas partidas. Mantenha suas avaliações em dia.</p>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-court-line flex items-center gap-3 flex-wrap">
+        <label class="text-sm font-medium text-court-teal cursor-pointer bg-court-teal/10 hover:bg-court-teal/20 px-3 py-2 rounded-lg transition">
+          <i class="fas fa-camera mr-1"></i> Alterar minha foto
+          <input type="file" accept="image/*" id="input-upload-foto" class="hidden" onchange="uploadFotoPerfil(event)">
+        </label>
+        <span id="status-upload-foto" class="text-xs text-court-muted"></span>
+      </div>
+      <div id="jogador-stats" class="mt-4 pt-4 border-t border-court-line grid grid-cols-3 gap-2 sm:gap-4 text-center"></div>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button onclick="mudarSubTelaJogador('partidas')" id="btn-sub-jog-partidas" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg bg-court-teal/10 text-court-teal">
+        <i class="fas fa-calendar-alt mr-1"></i> Minhas Partidas
+      </button>
+      <button onclick="mudarSubTelaJogador('ranking')" id="btn-sub-jog-ranking" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
+        <i class="fas fa-trophy mr-1"></i> Notas Gerais
+      </button>
+      <button onclick="mudarSubTelaJogador('avaliacoes')" id="btn-sub-jog-avaliacoes" class="flex-1 text-sm font-semibold px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
+        <i class="fas fa-clock-rotate-left mr-1"></i> Minhas Avaliações
+      </button>
+    </div>
+
+    <div id="sub-jogador-partidas" class="sub-jogador-pane space-y-6">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-coral">
+        <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider mb-2"><i class="fas fa-calendar-check mr-1"></i> Próxima Partida</h3>
+        <div id="proxima-partida-box"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Minhas Partidas</div>
+        <div id="lista-partidas-jogador" class="divide-y divide-court-line"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink flex items-center gap-2">
+          <i class="fas fa-clock-rotate-left"></i> Histórico de Partidas
+        </div>
+        <div id="lista-historico-jogador" class="divide-y divide-court-line"></div>
+      </div>
+    </div>
+
+    <div id="sub-jogador-ranking" class="sub-jogador-pane hidden space-y-4">
+      <p class="text-sm text-court-muted">Classificação geral com base na média de todas as avaliações recebidas por cada jogador(a).</p>
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[500px]">
+          <thead>
+            <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+              <th class="p-3 sm:p-4 w-16">Pos.</th>
+              <th class="p-3 sm:p-4">Jogador</th>
+              <th class="p-3 sm:p-4 text-center">Média Geral</th>
+              <th class="p-3 sm:p-4 text-center">Avaliações Recebidas</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-jogador-ranking" class="text-sm divide-y divide-court-line"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="sub-jogador-avaliacoes" class="sub-jogador-pane hidden space-y-4">
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line flex items-center justify-between gap-4">
+        <p class="text-sm text-court-muted">Histórico de todas as avaliações que você já recebeu dos seus colegas.</p>
+        <div class="text-right shrink-0">
+          <p class="text-xs font-semibold text-court-muted uppercase tracking-wider">Sua Média</p>
+          <p class="text-2xl font-display font-bold text-court-teal" id="minha-media-avaliacoes">0.00</p>
+        </div>
+      </div>
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+        <h3 class="text-sm font-bold text-court-ink flex items-center gap-2 mb-3"><i class="fas fa-chart-line text-court-teal"></i> Sua Evolução Mensal</h3>
+        <div id="grafico-evolucao-minha-media"></div>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+        <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Avaliações Recebidas</div>
+        <div id="lista-minhas-avaliacoes" class="divide-y divide-court-line"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTAGEM PRÓXIMO JOGO (acesso de qualquer usuário logado) -->
+  <section id="tela-lista-proximo-jogo" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
+        <i class="fas fa-list-check mr-1"></i> Lista de Presença
+      </span>
+    </div>
+    <div id="conteudo-lista-proximo-jogo"></div>
+  </section>
+
+  <!-- SUGESTÕES (acesso de qualquer usuário logado) -->
+  <section id="tela-sugestoes" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar
+      </button>
+      <span class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold">
+        <i class="fas fa-comment-dots mr-1"></i> Sugestões
+      </span>
+    </div>
+
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-6">
+      <h3 class="text-sm font-semibold text-court-ink mb-3">Enviar uma sugestão</h3>
+      <form onsubmit="enviarSugestao(event)" class="space-y-3">
+        <textarea id="sugestao-texto" required rows="3" placeholder="Conte sua ideia, elogio ou o que podemos melhorar..." class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal resize-none"></textarea>
+        <button type="submit" class="w-full bg-court-teal hover:brightness-95 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          <i class="fas fa-paper-plane mr-2"></i> Enviar Sugestão
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+      <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Sugestões da Turma</div>
+      <div id="lista-sugestoes" class="divide-y divide-court-line"></div>
+    </div>
+  </section>
+
+  <!-- AVALIAÇÃO -->
+  <section id="tela-avaliacao" class="hidden max-w-2xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <button onclick="voltarTela()" class="text-court-teal hover:text-court-ink font-medium text-sm flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> Voltar ao painel
+      </button>
+      <span id="avaliacao-data-partida" class="bg-court-teal/10 text-court-teal px-3 py-1 rounded-full text-sm font-semibold"></span>
+    </div>
+
+    <form onsubmit="salvarAvaliacao(event)" class="space-y-4">
+      <input type="hidden" id="avaliacao-partida-id">
+      <div id="lista-colegas-avaliacao" class="space-y-4"></div>
+      <button type="submit" class="w-full bg-court-teal hover:brightness-95 text-white font-bold py-3 rounded-xl transition shadow-md">
+        <i class="fas fa-paper-plane mr-2"></i> Enviar Avaliações
+      </button>
+    </form>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="tela-admin" class="hidden">
+    <div class="grid grid-cols-1 gap-4 md:gap-6">
+      <div class="space-y-6">
+
+        <!-- JOGADORES -->
+        <div id="sub-admin-jogadores" class="sub-admin-pane space-y-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line">
+            <h3 class="text-lg font-display font-semibold text-court-ink mb-4" id="titulo-form-jogador">Cadastrar Novo Jogador</h3>
+            <form onsubmit="salvarJogador(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+              <input type="hidden" id="jog-id">
+              <div class="sm:col-span-1">
+                <label class="block text-xs font-medium text-court-ink mb-1">Nome Completo</label>
+                <input type="text" id="jog-nome" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Usuário</label>
+                <input type="text" id="jog-user" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Senha</label>
+                <input type="text" id="jog-senha" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Foto — opcional</label>
+                <input type="text" id="jog-foto" placeholder="deixe em branco para usar usuario.jpg" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <div class="flex items-center gap-4 h-10 sm:col-span-4 sm:justify-end flex-wrap">
+                <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer">
+                  <input type="checkbox" id="jog-ativo" checked class="w-4 h-4 text-court-teal rounded"> Ativo
+                </label>
+                <label class="flex items-center text-sm font-medium text-court-ink gap-2 cursor-pointer" title="Organizadores continuam recebendo notas normalmente, só não entram no ranking nem concorrem ao brinde">
+                  <input type="checkbox" id="jog-coordenador" class="w-4 h-4 text-court-teal rounded"> Organizador (recebe nota, mas não concorre ao brinde)
+                </label>
+                <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                  Salvar
+                </button>
+              </div>
+            </form>
+            <p class="text-xs text-court-muted mt-3"><i class="fas fa-circle-info mr-1"></i>Sem foto cadastrada, o sistema procura automaticamente o arquivo <code>&lt;usuario&gt;.jpg</code> na raiz do repositório do GitHub (ex: <code>jairo.jpg</code>, ao lado do <code>index.html</code>). Se o arquivo não existir, aparece um avatar colorido com as iniciais. Cada jogador também pode enviar a própria foto direto pelo celular, no botão "Alterar minha foto" dentro da sua área de jogador.</p>
+            <p class="text-xs text-court-muted mt-1"><i class="fas fa-triangle-exclamation mr-1 text-amber-600"></i>Fotos enviadas pelo app ficam salvas comprimidas dentro do banco de dados. Use com moderação — evite que todo mundo troque de foto toda hora, pra não pesar demais o banco.</p>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[640px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4 w-14"></th>
+                  <th class="p-3 sm:p-4">Nome</th>
+                  <th class="p-3 sm:p-4">Usuário</th>
+                  <th class="p-3 sm:p-4">Senha</th>
+                  <th class="p-3 sm:p-4">Status</th>
+                  <th class="p-3 sm:p-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-jogadores" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PARTIDAS -->
+        <div id="sub-admin-partidas" class="sub-admin-pane hidden space-y-6">
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+            <h3 class="text-lg font-display font-semibold text-court-ink mb-4" id="titulo-form-partida">Cadastrar Nova Partida</h3>
+            <form onsubmit="salvarPartida(event)" class="space-y-4">
+              <input type="hidden" id="part-id">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Data</label>
+                  <input type="date" id="part-data" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Horário de início (dura 2h)</label>
+                  <input type="time" id="part-hora" required class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Local</label>
+                  <select id="part-local" required onchange="onSelecionarLocal(this)" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal"></select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-court-ink mb-1">Quadra</label>
+                  <select id="part-quadra" required onchange="onSelecionarQuadra(this)" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal"></select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-court-ink mb-1">Observações</label>
+                <input type="text" id="part-obs" class="w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+              </div>
+              <p class="text-xs text-court-muted bg-court-bg border border-court-line rounded-lg p-3"><i class="fas fa-circle-info mr-1"></i>Não é preciso escolher quem vai jogar agora — depois de salva, a partida fica visível para todos confirmarem presença sozinhos.</p>
+              <div class="flex justify-end">
+                <button type="submit" class="bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-6 py-2 rounded-lg transition">
+                  Salvar Partida
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[720px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4">Data/Hora</th>
+                  <th class="p-3 sm:p-4">Local</th>
+                  <th class="p-3 sm:p-4">Quadra</th>
+                  <th class="p-3 sm:p-4">Confirmados</th>
+                  <th class="p-3 sm:p-4">Status</th>
+                  <th class="p-3 sm:p-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-partidas" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AVALIAÇÕES -->
+        <div id="sub-admin-avaliacoes" class="sub-admin-pane hidden space-y-4">
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-court-line grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-court-ink mb-1">Filtro por Mês</label>
+              <input type="month" id="filtro-mes" onchange="renderizarAbaAvaliacoes()" class="w-full text-sm px-3 py-1.5 border border-court-line rounded-lg outline-none focus:border-court-teal">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-court-ink mb-1">Filtro por Jogador Avaliado</label>
+              <select id="filtro-jogador" onchange="renderizarAbaAvaliacoes()" class="w-full text-sm px-3 py-1.5 border border-court-line rounded-lg outline-none focus:border-court-teal">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="flex flex-col justify-end">
+              <div class="text-xs font-semibold text-court-muted">Média Geral do Período: <span id="media-geral-painel" class="text-court-teal font-bold text-base">0.00</span></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[640px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4">Partida</th>
+                  <th class="p-3 sm:p-4">Avaliador</th>
+                  <th class="p-3 sm:p-4">Avaliado</th>
+                  <th class="p-3 sm:p-4">Nota</th>
+                  <th class="p-3 sm:p-4">Comentário</th>
+                  <th class="p-3 sm:p-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-avaliacoes" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- RANKING -->
+        <div id="sub-admin-ranking" class="sub-admin-pane hidden space-y-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-coral">
+            <h3 class="text-lg font-display font-semibold text-court-ink flex items-center gap-2 mb-2">
+              <i class="fas fa-gift text-court-coral"></i> Apuração do Brinde Mensal
+            </h3>
+            <p class="text-xs text-court-muted -mt-1 mb-2">Considera só as avaliações de partidas deste mês.</p>
+            <div id="resultado-brinde-box" class="mt-4 p-4 rounded-lg bg-court-bg"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink">Classificação Geral (Ranking)</div>
+            <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[560px]">
+              <thead>
+                <tr class="bg-court-bg text-court-muted text-xs font-bold uppercase tracking-wider border-b border-court-line">
+                  <th class="p-3 sm:p-4 w-16">Pos.</th>
+                  <th class="p-3 sm:p-4">Jogador</th>
+                  <th class="p-3 sm:p-4 text-center">Média Geral</th>
+                  <th class="p-3 sm:p-4 text-center">Partidas Disputadas</th>
+                  <th class="p-3 sm:p-4 text-center">Avaliações Recebidas</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-admin-ranking" class="text-sm divide-y divide-court-line"></tbody>
+            </table>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <h3 class="text-sm font-bold text-court-ink flex items-center gap-2"><i class="fas fa-chart-line text-court-teal"></i> Evolução da Média Mensal</h3>
+              <select id="grafico-jogador-select" onchange="renderizarGraficoJogadorSelecionado()" class="text-sm px-3 py-1.5 border border-court-line rounded-lg outline-none focus:border-court-teal"></select>
+            </div>
+            <div id="grafico-evolucao-media"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-court-line overflow-hidden">
+            <div class="p-4 bg-court-bg border-b border-court-line font-semibold text-court-ink flex items-center gap-2">
+              <i class="fas fa-trophy text-amber-500"></i> Hall da Fama — Vencedores por Mês
+            </div>
+            <div id="lista-hall-fama" class="divide-y divide-court-line"></div>
+          </div>
+        </div>
+
+        <!-- EXPORTAR -->
+        <div id="sub-admin-exportar" class="sub-admin-pane hidden space-y-4">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line">
+            <h3 class="text-lg font-display font-semibold text-court-ink mb-2">Exportar Dados Atualizados</h3>
+            <p class="text-sm text-court-muted mb-4">Baixe um arquivo com os dados atuais (jogadores, partidas e avaliações) para backup ou para atualizar o código.</p>
+            <textarea id="export-textarea" readonly class="w-full h-64 text-xs font-mono p-3 border border-court-line rounded-lg bg-court-bg"></textarea>
+            <button onclick="baixarDados()" class="mt-4 bg-court-teal hover:brightness-95 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+              <i class="fas fa-download mr-2"></i> Baixar JSON
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+
+<script>
+  // ---------- Navegação ----------
+  // Pilha (histórico) de telas visitadas, para o botão "Voltar" sempre
+  // retornar para o lugar certo, não importa de onde a tela foi aberta.
+  let pilhaNavegacao = [];
+
+  function telaHomePadrao(){
+    return (usuarioLogado && usuarioLogado.perfil === 'admin') ? 'tela-admin' : 'tela-jogador';
+  }
+
+  function empilharTelaAtual(){
+    const secaoAtual = document.querySelector('main > section:not(.hidden)');
+    if(secaoAtual) pilhaNavegacao.push(secaoAtual.id);
+  }
+
+  // Troca de tela "de nível" (empilhando o histórico) + re-renderiza o conteúdo certo
+  function irParaTela(id){
+    mudarTela(id);
+    if(id==='tela-visao-geral') renderizarVisaoGeral();
+    else if(id==='tela-lista-proximo-jogo') renderizarListaProximoJogo();
+    else atualizarTelaAtual();
+  }
+
+  function voltarTela(){
+    let destino = pilhaNavegacao.pop();
+    if(!destino) destino = telaHomePadrao();
+    irParaTela(destino);
+  }
+
+  // Clique no logo "Família Vôlei": sempre volta para a aba principal do usuário
+  function irParaTelaPrincipal(){
+    if(!usuarioLogado) return;
+    pilhaNavegacao = [];
+    irParaTela(telaHomePadrao());
+  }
+
+  function mudarTela(id){
+    document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  function mudarSubTelaJogador(sub){
+    document.querySelectorAll('.sub-jogador-pane').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('sub-jogador-'+sub).classList.remove('hidden');
+    document.querySelectorAll('#btn-sub-jog-partidas, #btn-sub-jog-ranking, #btn-sub-jog-avaliacoes').forEach(b=>{
+      b.classList.remove('bg-court-teal/10','text-court-teal');
+      b.classList.add('text-gray-600');
+    });
+    const btn = document.getElementById('btn-sub-jog-'+sub);
+    btn.classList.add('bg-court-teal/10','text-court-teal');
+    btn.classList.remove('text-gray-600');
+
+    if(sub==='partidas') renderizarPainelJogador();
+    if(sub==='ranking') renderizarRankingJogador();
+    if(sub==='avaliacoes') renderizarMinhasAvaliacoes();
+  }
+
+  // Chamado pelos botões do "Painel Admin" no menu lateral: fecha o menu,
+  // garante que a tela do admin esteja visível e troca para a aba pedida.
+  function irParaAdmin(sub){
+    fecharMenu();
+    mudarTela('tela-admin');
+    mudarSubTelaAdmin(sub);
+  }
+
+  function mudarSubTelaAdmin(sub){
+    document.querySelectorAll('.sub-admin-pane').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('sub-admin-'+sub).classList.remove('hidden');
+    document.querySelectorAll('.menu-admin-btn').forEach(b=>{
+      b.classList.remove('bg-court-teal/10','text-court-teal');
+      b.classList.add('text-gray-600');
+    });
+    const btn = document.getElementById('btn-sub-'+sub);
+    btn.classList.add('bg-court-teal/10','text-court-teal');
+    btn.classList.remove('text-gray-600');
+
+    if(sub==='jogadores') renderizarTabelaJogadores();
+    if(sub==='partidas'){ renderizarOpcoesLocais(); renderizarOpcoesQuadras(); renderizarTabelaPartidas(); }
+    if(sub==='avaliacoes'){ popularFiltroJogadores(); renderizarAbaAvaliacoes(); }
+    if(sub==='ranking') renderizarRanking();
+    if(sub==='exportar') renderizarExportar();
+  }
+
+  function formatarData(iso){
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function horarioComDuracao(inicio){
+    const [h,m] = inicio.split(':').map(Number);
+    const hf = (h+2) % 24;
+    return `${inicio} - ${String(hf).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+
+  // ---------- Avatares ----------
+  const AVATAR_CORES = ['#1F6F6B','#E8623D','#B8860B','#6B4C9A','#2E86AB','#A23B3B','#4C7A3D','#8A5A44'];
+
+  function corAvatar(nome){
+    let hash = 0;
+    for(let i=0;i<nome.length;i++) hash = nome.charCodeAt(i) + ((hash<<5)-hash);
+    return AVATAR_CORES[Math.abs(hash) % AVATAR_CORES.length];
+  }
+
+  function iniciais(nome){
+    const partes = nome.trim().split(/\s+/);
+    const a = partes[0]?.[0] || '';
+    const b = partes.length>1 ? partes[partes.length-1][0] : '';
+    return (a+b).toUpperCase();
+  }
+
+  function avatarHTML(usuario, tamanho){
+    tamanho = tamanho || 'w-10 h-10 text-sm';
+    const cor = corAvatar(usuario.nome);
+    const ini = iniciais(usuario.nome);
+    // Se não houver foto cadastrada manualmente, tenta o arquivo na raiz do site: <usuario>.jpg
+    const src = (usuario.foto && usuario.foto.trim()) ? usuario.foto.trim() : `${usuario.usuario}.jpg`;
+    return `<img src="${src}" data-cor="${cor}" data-iniciais="${ini}" class="avatar-foto ${tamanho} rounded-full object-cover border border-court-line shrink-0" alt="${usuario.nome}">`;
+  }
+
+  // Se a foto não existir/carregar, troca automaticamente pelo avatar de iniciais.
+  // Funciona para qualquer avatar renderizado em qualquer lugar da tela, mesmo depois de re-render.
+  const observadorAvatares = new MutationObserver(()=>{
+    document.querySelectorAll('.avatar-foto:not([data-avatar-observado])').forEach(img=>{
+      img.setAttribute('data-avatar-observado','1');
+      img.addEventListener('error', function(){
+        const div = document.createElement('div');
+        div.className = img.className.replace('avatar-foto','').trim() + ' flex items-center justify-center font-bold text-white shrink-0';
+        div.style.background = img.dataset.cor;
+        div.textContent = img.dataset.iniciais;
+        img.replaceWith(div);
+      }, {once:true});
+    });
+  });
+  observadorAvatares.observe(document.body, {childList:true, subtree:true});
+
+  // ---------- Login ----------
+  function alternarSenhaVisivel(){
+    const input = document.getElementById('login-password');
+    const icone = document.getElementById('icone-olho-senha');
+    const visivel = input.type === 'text';
+    input.type = visivel ? 'password' : 'text';
+    icone.classList.toggle('fa-eye', visivel);
+    icone.classList.toggle('fa-eye-slash', !visivel);
+  }
+
+  function login(event){
+    event.preventDefault();
+    const u = document.getElementById('login-username').value.trim().toLowerCase();
+    const p = document.getElementById('login-password').value;
+    const user = DB.usuarios.find(x=>x.usuario.toLowerCase()===u && x.senha===p && x.ativo);
+    const erro = document.getElementById('login-erro');
+    if(!user){ erro.classList.remove('hidden'); return; }
+    erro.classList.add('hidden');
+    usuarioLogado = user;
+    pilhaNavegacao = [];
+    document.getElementById('main-nav').classList.remove('hidden');
+    document.getElementById('nav-user-name').textContent = user.nome;
+    document.getElementById('nav-user-avatar').innerHTML = avatarHTML(user, 'w-9 h-9 text-xs');
+    document.getElementById('btn-nav-area-jogador').classList.toggle('hidden', user.perfil !== 'admin');
+    document.getElementById('menu-admin-secao').classList.toggle('hidden', user.perfil !== 'admin');
+    atualizarBotaoNotificacao();
+    if(user.perfil === 'admin'){
+      mudarTela('tela-admin');
+      mudarSubTelaAdmin('jogadores');
+    } else {
+      mudarTela('tela-jogador');
+      mudarSubTelaJogador('partidas');
+    }
+  }
+
+  // Permite que um admin também acesse a própria área de jogador,
+  // para confirmar presença e avaliar colegas normalmente.
+  function abrirAreaJogador(){
+    empilharTelaAtual();
+    mudarTela('tela-jogador');
+    mudarSubTelaJogador('partidas');
+  }
+
+  // ---------- Avisos (notificações do navegador) ----------
+  // Importante: isso usa a Notification API do navegador, então só funciona
+  // enquanto o app está aberto (numa aba ou instalado) no aparelho da pessoa.
+  // Não é um "push" que acorda o celular com o app fechado — isso exigiria
+  // um servidor separado (Firebase Cloud Messaging), que este projeto não tem.
+  function atualizarBotaoNotificacao(){
+    const btn = document.getElementById('btn-nav-notificacoes');
+    if(!btn) return;
+    const suportado = 'Notification' in window;
+    btn.classList.toggle('hidden', !suportado || Notification.permission !== 'default');
+  }
+
+  function pedirPermissaoNotificacao(){
+    if(!('Notification' in window)){
+      alert('Este navegador não suporta notificações.');
+      return;
+    }
+    Notification.requestPermission().then(()=>{
+      atualizarBotaoNotificacao();
+    });
+  }
+
+  function notificar(titulo, corpo){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    try{
+      new Notification(titulo, { body: corpo, icon: 'icon-192.png' });
+    }catch(e){
+      console.warn('Não foi possível exibir a notificação:', e);
+    }
+  }
+
+  // Compara o estado antigo com o novo (vindos do Firestore) e dispara avisos
+  // quando alguém confirma presença, quando faltam poucas vagas, ou quando
+  // a lista fecha (12/12).
+  function verificarAvisos(dbAntes, dbDepois){
+    if(!dbAntes) return; // primeira carga da página: não avisa nada
+    dbDepois.partidas.forEach(pNova=>{
+      const pAntiga = dbAntes.partidas.find(p=>p.id===pNova.id);
+      const confAntes = pAntiga ? (pAntiga.confirmados||[]).length : 0;
+      const confDepois = (pNova.confirmados||[]).length;
+      if(confDepois > confAntes){
+        const vagas = 12 - confDepois;
+        if(vagas === 0){
+          notificar('Lista completa! 🏐', `A partida de ${formatarData(pNova.data)} já tem 12/12 confirmados.`);
+        } else if(vagas <= 2){
+          notificar('Últimas vagas! 🏐', `Faltam só ${vagas} vaga(s) para ${formatarData(pNova.data)}.`);
+        } else {
+          notificar('Nova confirmação 🏐', `${confDepois}/12 confirmados para ${formatarData(pNova.data)}.`);
+        }
+      }
+    });
+  }
+
+  // ---------- Menu lateral (mobile-friendly) ----------
+  function abrirMenu(){
+    document.getElementById('menu-overlay').classList.remove('hidden');
+    document.getElementById('menu-lateral').classList.remove('translate-x-full');
+  }
+
+  function fecharMenu(){
+    document.getElementById('menu-overlay').classList.add('hidden');
+    document.getElementById('menu-lateral').classList.add('translate-x-full');
+  }
+
+  function logout(){
+    usuarioLogado = null;
+    pilhaNavegacao = [];
+    fecharMenu();
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    mudarTela('tela-login');
+  }
+
+  // ---------- Painel do jogador ----------
+  function renderizarPainelJogador(){
+    document.getElementById('jogador-nome').textContent = usuarioLogado.nome;
+    document.getElementById('jogador-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-14 h-14 text-lg');
+
+    // Estatísticas pessoais: partidas jogadas, média histórica e posição no ranking
+    const statsCont = document.getElementById('jogador-stats');
+    if(statsCont){
+      const partidasJogadas = DB.partidas.filter(p=>(p.confirmados||[]).includes(usuarioLogado.id)).length;
+      const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===usuarioLogado.id);
+      const media = recebidas.length ? (recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length) : null;
+      const ranking = posicoesComEmpate(construirRanking());
+      const meuRanking = ranking.find(r=>r.u.id===usuarioLogado.id);
+      const foraDoRanking = usuarioLogado.avaliavel===false || usuarioLogado.perfil==='admin';
+
+      statsCont.innerHTML = `
+        <div>
+          <p class="text-2xl font-display font-bold text-court-ink">${partidasJogadas}</p>
+          <p class="text-xs text-court-muted mt-0.5">Partidas jogadas</p>
+        </div>
+        <div>
+          <p class="text-2xl font-display font-bold text-court-teal">${media!==null ? media.toFixed(2) : '—'}</p>
+          <p class="text-xs text-court-muted mt-0.5">Média geral</p>
+        </div>
+        <div>
+          <p class="text-2xl font-display font-bold text-court-coral">${foraDoRanking ? '—' : (meuRanking ? meuRanking.posicao+'º' : '—')}</p>
+          <p class="text-xs text-court-muted mt-0.5">${foraDoRanking ? 'Não concorre' : 'Posição no ranking'}</p>
+        </div>`;
+    }
+
+    // Partidas abertas: aparecem para TODOS, já que quem vai jogar é definido
+    // por cada um confirmando presença (não há mais pré-seleção na criação).
+    const futuras = partidasAbertas();
+
+    // Histórico: partidas já concluídas em que EU confirmei presença — só quem
+    // realmente foi pode avaliar os colegas daquela partida.
+    const passadas = DB.partidas
+      .filter(p=>partidaConcluida(p) && (p.confirmados||[]).includes(usuarioLogado.id))
+      .sort((a,b)=>b.data.localeCompare(a.data));
+
+    // Próxima partida em destaque
+    const boxProxima = document.getElementById('proxima-partida-box');
+    if(futuras.length){
+      const p = futuras[0];
+      boxProxima.innerHTML = `
+        <p class="text-xl font-display font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+        <p class="text-sm text-court-muted mt-1">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>`;
+    } else {
+      boxProxima.innerHTML = `<p class="text-sm text-court-muted">Nenhuma partida aberta no momento.</p>`;
+    }
+
+    // Lista de partidas abertas — com atalho pra confirmar presença
+    const cont = document.getElementById('lista-partidas-jogador');
+    if(futuras.length===0){
+      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Nenhuma partida aberta no momento.</div>`;
+    } else {
+      cont.innerHTML = futuras.map(p=>{
+        const confirmados = p.confirmados || [];
+        const jaConfirmou = confirmados.includes(usuarioLogado.id);
+        const vagas = 12 - confirmados.length;
+        let acao;
+        if(jaConfirmou){
+          acao = `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Presença confirmada</span>`;
+        } else if(vagas > 0){
+          acao = `<button onclick="confirmarPresenca(${p.id})" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition shrink-0 w-full sm:w-auto">Confirmar presença</button>`;
+        } else {
+          acao = `<span class="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 shrink-0 self-start sm:self-auto">Lista completa</span>`;
+        }
+        return `
+        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold text-court-ink">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+            <p class="text-sm text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}${p.obs ? ' — '+p.obs : ''}</p>
+            <p class="text-xs text-court-muted mt-0.5">${confirmados.length}/12 confirmados</p>
+          </div>
+          ${acao}
+        </div>`;
+      }).join('');
+    }
+
+    // Histórico de partidas já concluídas — avaliar colegas com quem joguei
+    const contHist = document.getElementById('lista-historico-jogador');
+    if(passadas.length===0){
+      contHist.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Nenhuma partida no histórico ainda.</div>`;
+    } else {
+      contHist.innerHTML = passadas.map(p=>{
+        const jaAvaliou = DB.avaliacoes.some(a=>a.partidaId===p.id && a.avaliadorId===usuarioLogado.id);
+        return `
+        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <p class="font-semibold text-court-ink text-sm">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</p>
+            <p class="text-xs text-court-muted">${p.local}${p.quadra ? ' · '+p.quadra : ''}</p>
+          </div>
+          ${jaAvaliou
+            ? `<span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 shrink-0 self-start sm:self-auto"><i class="fas fa-check mr-1"></i>Avaliado</span>`
+            : `<button onclick="abrirAvaliacao(${p.id})" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-court-coral/10 text-court-coral shrink-0 self-start sm:self-auto">Avaliar agora</button>`
+          }
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Envia a foto escolhida para o Firebase Storage e salva só o link (URL)
+  // Sem usar o Firebase Storage (que exige plano pago), a foto é redimensionada
+  // e comprimida aqui mesmo no navegador e guardada como base64 dentro do
+  // próprio documento do Firestore. Por isso é essencial manter o arquivo
+  // pequeno — o documento inteiro do app tem um limite de 1MB no total.
+  function uploadFotoPerfil(event){
+    const arquivo = event.target.files[0];
+    event.target.value = ''; // permite escolher o mesmo arquivo de novo depois
+    if(!arquivo || !usuarioLogado) return;
+
+    if(!arquivo.type.startsWith('image/')){
+      alert('Selecione um arquivo de imagem (jpg, png, etc).');
+      return;
+    }
+    if(arquivo.size > 8 * 1024 * 1024){
+      alert('A imagem deve ter no máximo 8MB (antes de comprimir).');
+      return;
+    }
+
+    const status = document.getElementById('status-upload-foto');
+    if(status) status.textContent = 'Processando foto...';
+
+    const leitor = new FileReader();
+    leitor.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        // Recorta em quadrado (centralizado) e redimensiona pra um tamanho pequeno
+        const TAMANHO = 220;
+        const lado = Math.min(img.width, img.height);
+        const sx = (img.width - lado) / 2;
+        const sy = (img.height - lado) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = TAMANHO;
+        canvas.height = TAMANHO;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, lado, lado, 0, 0, TAMANHO, TAMANHO);
+
+        // Tenta qualidades decrescentes até caber num tamanho seguro (~50KB)
+        const LIMITE_BYTES = 50 * 1024;
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        [0.5, 0.35, 0.2].some(q=>{
+          const tamanhoAprox = dataUrl.length * 3 / 4;
+          if(tamanhoAprox <= LIMITE_BYTES) return true;
+          dataUrl = canvas.toDataURL('image/jpeg', q);
+          return false;
+        });
+
+        const tamanhoFinalKB = Math.round((dataUrl.length * 3/4) / 1024);
+        if(tamanhoFinalKB > 80){
+          if(status) status.textContent = '';
+          alert('Essa imagem ficou pesada demais mesmo depois de comprimida. Tente uma foto mais simples (rosto centralizado, sem fundo muito detalhado).');
+          return;
+        }
+
+        const u = DB.usuarios.find(x=>x.id===usuarioLogado.id);
+        if(u) u.foto = dataUrl;
+        usuarioLogado.foto = dataUrl;
+        salvarEstado();
+        document.getElementById('jogador-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-14 h-14 text-lg');
+        document.getElementById('nav-user-avatar').innerHTML = avatarHTML(usuarioLogado, 'w-9 h-9 text-xs');
+        if(status){
+          status.textContent = 'Foto atualizada!';
+          setTimeout(()=>{ status.textContent=''; }, 3000);
+        }
+      };
+      img.onerror = ()=>{
+        if(status) status.textContent = '';
+        alert('Não foi possível ler essa imagem. Tente outro arquivo.');
+      };
+      img.src = e.target.result;
+    };
+    leitor.onerror = ()=>{
+      if(status) status.textContent = '';
+      alert('Não foi possível ler o arquivo. Tente novamente.');
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+
+  // ---------- Avaliação ----------
+  function abrirAvaliacao(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    const confirmados = partida.confirmados || [];
+    if(!confirmados.includes(usuarioLogado.id)){
+      alert('Só quem confirmou presença nessa partida pode avaliar os colegas dela.');
+      return;
+    }
+    document.getElementById('avaliacao-partida-id').value = partidaId;
+    document.getElementById('avaliacao-data-partida').textContent = `${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}`;
+    const colegas = confirmados.filter(id=>{
+      if(id===usuarioLogado.id) return false;
+      // "avaliavel:false" agora só controla ranking/prêmio (ver construirRanking).
+      // Organizadores continuam podendo receber notas normalmente.
+      const jog = DB.usuarios.find(u=>u.id===id);
+      return !!jog;
+    });
+    const cont = document.getElementById('lista-colegas-avaliacao');
+
+    cont.innerHTML = colegas.map(id=>{
+      const jog = DB.usuarios.find(u=>u.id===id);
+      return `
+      <div class="bg-white p-4 rounded-xl border border-court-line" data-jogador-id="${id}">
+        <div class="flex items-center gap-3 mb-3">
+          ${avatarHTML(jog, 'w-10 h-10 text-sm')}
+          <p class="font-semibold text-court-ink">${jog.nome}</p>
+        </div>
+        <p class="text-xs font-medium text-court-muted mb-2">Nota de 0 a 10:</p>
+        <div class="grid grid-cols-6 sm:grid-cols-11 gap-1.5 mb-3 notas-numericas" data-valor="">
+          ${Array.from({length:11},(_,n)=>n).map(n=>`<button type="button" data-nota="${n}" onclick="selecionarNotaNumerica(this)" class="nota-btn h-9 rounded-lg border border-court-line text-sm font-semibold text-court-ink hover:border-court-teal transition">${n}</button>`).join('')}
+        </div>
+        <input type="text" placeholder="Comentário (opcional)" class="comentario-input w-full text-sm px-3 py-2 border border-court-line rounded-lg outline-none focus:border-court-teal">
+      </div>`;
+    }).join('');
+
+    empilharTelaAtual();
+    mudarTela('tela-avaliacao');
+  }
+
+  function selecionarNotaNumerica(el){
+    const grupo = el.parentElement;
+    grupo.dataset.valor = el.dataset.nota;
+    [...grupo.children].forEach(btn=>{
+      const selecionado = btn.dataset.nota === el.dataset.nota;
+      btn.classList.toggle('bg-court-teal', selecionado);
+      btn.classList.toggle('text-white', selecionado);
+      btn.classList.toggle('border-court-teal', selecionado);
+    });
+  }
+
+  function salvarAvaliacao(event){
+    event.preventDefault();
+    const partidaId = Number(document.getElementById('avaliacao-partida-id').value);
+    const cards = document.querySelectorAll('#lista-colegas-avaliacao > div');
+    let algumSemNota = false;
+
+    cards.forEach(card=>{
+      const jogadorId = Number(card.dataset.jogadorId);
+      const valorAttr = card.querySelector('.notas-numericas').dataset.valor;
+      const comentario = card.querySelector('.comentario-input').value.trim();
+      if(valorAttr === '' || valorAttr === undefined){ algumSemNota = true; return; }
+      const nota = Number(valorAttr);
+      DB.avaliacoes = DB.avaliacoes.filter(a=>!(a.partidaId===partidaId && a.avaliadorId===usuarioLogado.id && a.jogadorId===jogadorId));
+      const novoId = DB.avaliacoes.length ? Math.max(...DB.avaliacoes.map(a=>a.id))+1 : 1;
+      DB.avaliacoes.push({id: novoId, partidaId, avaliadorId: usuarioLogado.id, jogadorId, nota, comentario});
+    });
+
+    if(algumSemNota){
+      alert('Dê uma nota (de 0 a 10) para todos os colegas antes de enviar.');
+      return;
+    }
+
+    salvarEstado();
+    pilhaNavegacao.pop();
+    mudarTela('tela-jogador');
+    mudarSubTelaJogador('partidas');
+  }
+
+  // ---------- Visão Geral (tela de início rápido, com botão de voltar) ----------
+  function abrirVisaoGeral(){
+    empilharTelaAtual();
+    mudarTela('tela-visao-geral');
+    renderizarVisaoGeral();
+  }
+
+  function renderizarVisaoGeral(){
+    const cont = document.getElementById('conteudo-visao-geral');
+    const partida = partidaMaisProxima();
+
+    let blocoProxima;
+    if(partida){
+      blocoProxima = `
+        <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line border-l-4 border-court-coral">
+          <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider mb-2"><i class="fas fa-calendar-check mr-1"></i> Próxima Partida</h3>
+          <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
+          <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
+        </div>`;
+    } else {
+      blocoProxima = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-court-line text-sm text-court-muted text-center">Nenhuma partida futura cadastrada no momento.</div>`;
+    }
+
+    let blocoPreLista = '';
+    if(partida){
+      const confirmados = partida.confirmados || [];
+      const pagos = partida.pagos || [];
+      if(confirmados.length){
+        const nomes = confirmados.map(id=>{
+          const u = DB.usuarios.find(x=>x.id===id);
+          if(!u) return '';
+          const pago = pagos.includes(id);
+          return `<div class="flex items-center gap-2 p-2 rounded-lg bg-court-bg border border-court-line">${avatarHTML(u,'w-7 h-7 text-xs')}<span class="text-sm font-medium text-court-ink truncate flex-1">${u.nome}</span>${pago ? `<span class="text-base leading-none" title="Pagamento confirmado">✅</span>` : ''}</div>`;
+        }).join('');
+        const ehAdminVisaoGeral = usuarioLogado && usuarioLogado.perfil==='admin';
+        blocoPreLista = `
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line">
+            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <h3 class="text-xs font-bold text-court-muted uppercase tracking-wider"><i class="fas fa-list-check mr-1"></i> Pré-lista (${confirmados.length}/12) <span class="text-emerald-600 normal-case">· ${pagos.length} pagaram ✅</span></h3>
+              <div class="flex items-center gap-3">
+                ${ehAdminVisaoGeral ? `<button onclick="copiarPreListaWhatsapp(${partida.id})" class="text-xs font-semibold text-emerald-600 hover:underline"><i class="fab fa-whatsapp mr-1"></i>Copiar p/ WhatsApp</button>` : ''}
+                ${ehAdminVisaoGeral ? `<button onclick="copiarCobrancaWhatsapp(${partida.id})" class="text-xs font-semibold text-court-coral hover:underline"><i class="fas fa-coins mr-1"></i>Cobrar pagamento</button>` : ''}
+                <button onclick="abrirListaProximoJogo()" class="text-xs font-semibold text-court-teal hover:underline">Ver / confirmar presença</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${nomes}</div>
+          </div>`;
+      } else {
+        blocoPreLista = `
+          <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line text-center">
+            <p class="text-sm text-court-muted mb-3">Ainda ninguém confirmou presença no próximo jogo.</p>
+            <button onclick="abrirListaProximoJogo()" class="bg-court-coral hover:brightness-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Confirmar minha presença</button>
+          </div>`;
+      }
+    }
+
+    cont.innerHTML = blocoProxima + blocoPreLista;
+  }
+
+  // ---------- Listagem de partidas abertas (confirmação de presença pública, até 12 vagas cada) ----------
+  function partidaMaisProxima(){
+    const hoje = new Date().toISOString().slice(0,10);
+    const futuras = DB.partidas.filter(p=>p.data >= hoje && !partidaConcluida(p))
+      .sort((a,b)=> a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario));
+    return futuras[0] || null;
+  }
+
+  function partidasAbertas(){
+    return DB.partidas.filter(p=>!partidaConcluida(p))
+      .sort((a,b)=> a.data.localeCompare(b.data) || a.horario.localeCompare(b.horario));
+  }
+
+  function abrirListaProximoJogo(){
+    empilharTelaAtual();
+    mudarTela('tela-lista-proximo-jogo');
+    renderizarListaProximoJogo();
+  }
+
+  function renderizarListaProximoJogo(){
+    const cont = document.getElementById('conteudo-lista-proximo-jogo');
+    const partidas = partidasAbertas();
+
+    if(!partidas.length){
+      cont.innerHTML = `<p class="text-center text-court-muted text-sm py-10">Nenhuma partida aberta no momento.</p>`;
+      return;
+    }
+
+    const ehAdmin = usuarioLogado && usuarioLogado.perfil==='admin';
+
+    cont.innerHTML = partidas.map(partida=>{
+      if(!partida.confirmados) partida.confirmados = [];
+      if(!partida.pagos) partida.pagos = [];
+      const jaConfirmado = usuarioLogado && partida.confirmados.includes(usuarioLogado.id);
+      const vagas = 12 - partida.confirmados.length;
+
+      const slots = Array.from({length:12}, (_, i)=>{
+        const uid = partida.confirmados[i];
+        if(uid){
+          const u = DB.usuarios.find(x=>x.id===uid);
+          const podeRemover = usuarioLogado && (usuarioLogado.id===uid || usuarioLogado.perfil==='admin');
+          const pago = partida.pagos.includes(uid);
+          const controlePagamento = ehAdmin
+            ? `<button onclick="alternarPagamento(${partida.id},${uid})" title="${pago ? 'Pagamento confirmado — clique para desmarcar' : 'Marcar como pago'}" class="text-lg leading-none ${pago ? '' : 'grayscale opacity-30'} hover:opacity-100 transition">✅</button>`
+            : (pago ? `<span class="text-lg leading-none" title="Pagamento confirmado">✅</span>` : '');
+          return `
+          <div class="flex items-center gap-2 p-2.5 rounded-lg bg-court-bg border border-court-line">
+            <span class="text-xs font-bold text-court-muted w-5 shrink-0">${i+1}.</span>
+            ${avatarHTML(u || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
+            <span class="text-sm font-medium text-court-ink truncate">${u ? u.nome : '—'}</span>
+            <div class="ml-auto flex items-center gap-2 shrink-0">
+              ${controlePagamento}
+              ${podeRemover ? `<button onclick="removerConfirmacao(${partida.id},${uid})" class="text-red-400 hover:text-red-600 text-xs p-1"><i class="fas fa-times"></i></button>` : ''}
+            </div>
+          </div>`;
+        }
+        return `
+        <div class="flex items-center gap-2 p-2.5 rounded-lg border border-dashed border-court-line text-court-muted text-sm">
+          <span class="text-xs font-bold w-5 shrink-0">${i+1}.</span> Vaga livre
+        </div>`;
+      }).join('');
+
+      let botao = '';
+      if(jaConfirmado){
+        botao = `<button onclick="removerConfirmacao(${partida.id}, ${usuarioLogado.id})" class="w-full bg-white border border-court-line hover:bg-gray-50 text-court-ink font-semibold py-3 rounded-xl transition"><i class="fas fa-times mr-2"></i>Cancelar minha presença</button>`;
+      } else if(vagas > 0){
+        botao = `<button onclick="confirmarPresenca(${partida.id})" class="w-full bg-court-coral hover:brightness-95 text-white font-bold py-3 rounded-xl transition shadow-md"><i class="fas fa-check mr-2"></i>Confirmar minha presença</button>`;
+      } else {
+        botao = `<p class="text-center text-sm text-court-muted">Lista completa (12/12).</p>`;
+      }
+
+      return `
+      <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-court-line mb-8">
+        <div class="flex items-start justify-between gap-2 flex-wrap mb-4">
+          <div>
+            <p class="text-xl font-display font-semibold text-court-ink">${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}</p>
+            <p class="text-sm text-court-muted mt-1">${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}</p>
+            <p class="text-sm font-semibold text-court-teal mt-2">${partida.confirmados.length}/12 confirmados <span class="text-court-muted font-normal">·</span> <span class="text-emerald-600">${partida.pagos.length} pagaram ✅</span></p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+            ${ehAdmin ? `<button onclick="copiarPreListaWhatsapp(${partida.id})" class="text-xs font-semibold text-emerald-600 hover:underline"><i class="fab fa-whatsapp mr-1"></i>Copiar p/ WhatsApp</button>` : ''}
+            ${ehAdmin ? `<button onclick="copiarCobrancaWhatsapp(${partida.id})" class="text-xs font-semibold text-court-coral hover:underline"><i class="fas fa-coins mr-1"></i>Cobrar pagamento</button>` : ''}
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">${slots}</div>
+        ${botao}
+      </div>`;
+    }).join('');
+  }
+
+  // Monta um texto pronto com a pré-lista e copia para a área de transferência,
+  // para o admin colar direto no grupo do WhatsApp.
+  // Copia um texto para a área de transferência, com alternativa para
+  // navegadores/contextos sem suporte à Clipboard API.
+  function copiarTextoParaAreaDeTransferencia(texto){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(texto);
+    }
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    document.execCommand('copy');
+    document.body.removeChild(area);
+    return Promise.resolve();
+  }
+
+  function copiarPreListaWhatsapp(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    const confirmados = partida.confirmados || [];
+    const pagos = partida.pagos || [];
+
+    let texto = `🏐 *Família Vôlei — Pré-lista*\n`;
+    texto += `🗓 ${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}\n`;
+    texto += `📍 ${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}${partida.obs ? ' — '+partida.obs : ''}\n\n`;
+    texto += `*Confirmados (${confirmados.length}/12):*\n`;
+
+    if(confirmados.length){
+      confirmados.forEach((id, i)=>{
+        const u = DB.usuarios.find(x=>x.id===id);
+        const nome = u ? u.nome : '—';
+        const pagou = pagos.includes(id) ? ' ✅' : '';
+        texto += `${i+1}. ${nome}${pagou}\n`;
+      });
+    } else {
+      texto += 'Ninguém confirmou ainda.\n';
+    }
+
+    const vagas = 12 - confirmados.length;
+    texto += vagas > 0
+      ? `\nAinda tem ${vagas} vaga${vagas>1 ? 's' : ''} livre${vagas>1 ? 's' : ''}! Confirma aí no app 🙌`
+      : `\nLista completa (12/12)! ✅`;
+
+    copiarTextoParaAreaDeTransferencia(texto).then(()=>{
+      alert('Pré-lista copiada! Agora é só colar no WhatsApp.');
+    }).catch(()=>{
+      alert('Não foi possível copiar automaticamente. Aqui está o texto para copiar manualmente:\n\n' + texto);
+    });
+  }
+
+  // Lembrete automático de pagamento: monta um texto só com quem confirmou
+  // presença mas ainda não pagou, pronto para colar no grupo do WhatsApp.
+  function copiarCobrancaWhatsapp(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    const confirmados = partida.confirmados || [];
+    const pagos = partida.pagos || [];
+    const pendentes = confirmados.filter(id=>!pagos.includes(id));
+
+    if(!pendentes.length){
+      alert('Todo mundo que confirmou já pagou! 🎉');
+      return;
+    }
+
+    let texto = `💰 *Família Vôlei — Lembrete de pagamento*\n`;
+    texto += `🗓 ${formatarData(partida.data)} · ${horarioComDuracao(partida.horario)}\n`;
+    texto += `📍 ${partida.local}${partida.quadra ? ' · '+partida.quadra : ''}\n\n`;
+    texto += `Ainda estão pendentes:\n`;
+    pendentes.forEach((id,i)=>{
+      const u = DB.usuarios.find(x=>x.id===id);
+      texto += `${i+1}. ${u ? u.nome : '—'}\n`;
+    });
+    texto += `\nPor favor, acertem antes do jogo. Valeu! 🙏`;
+
+    copiarTextoParaAreaDeTransferencia(texto).then(()=>{
+      alert('Lembrete de pagamento copiado! Agora é só colar no WhatsApp.');
+    }).catch(()=>{
+      alert('Não foi possível copiar automaticamente. Aqui está o texto para copiar manualmente:\n\n' + texto);
+    });
+  }
+
+  function confirmarPresenca(partidaId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida || !usuarioLogado) return;
+    if(!partida.confirmados) partida.confirmados = [];
+    if(partida.confirmados.includes(usuarioLogado.id)) return;
+    if(partida.confirmados.length >= 12){ alert('A lista já está completa (12/12).'); return; }
+    partida.confirmados.push(usuarioLogado.id);
+    salvarEstado();
+    atualizarTelaAtual();
+  }
+
+  // ---------- Sugestões (qualquer usuário logado pode enviar e ver) ----------
+  function abrirSugestoes(){
+    empilharTelaAtual();
+    mudarTela('tela-sugestoes');
+    renderizarSugestoes();
+  }
+
+  function renderizarSugestoes(){
+    const cont = document.getElementById('lista-sugestoes');
+    if(!cont) return;
+    const lista = [...(DB.sugestoes || [])].sort((a,b)=>b.id-a.id);
+
+    if(!lista.length){
+      cont.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Nenhuma sugestão enviada ainda. Seja o primeiro!</div>`;
+      return;
+    }
+
+    cont.innerHTML = lista.map(s=>{
+      const autor = DB.usuarios.find(u=>u.id===s.autorId);
+      const podeRemover = usuarioLogado && (usuarioLogado.perfil==='admin' || usuarioLogado.id===s.autorId);
+      return `
+      <div class="p-4 flex items-start gap-3">
+        ${avatarHTML(autor || {nome:'—', usuario:'x'}, 'w-8 h-8 text-xs')}
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-court-ink">${autor ? autor.nome : 'Usuário removido'}</p>
+          <p class="text-sm text-court-ink mt-1 whitespace-pre-wrap break-words">${s.texto}</p>
+          <p class="text-xs text-court-muted mt-1">${s.data || ''}</p>
+        </div>
+        ${podeRemover ? `<button onclick="removerSugestao(${s.id})" class="text-red-400 hover:text-red-600 p-1 shrink-0"><i class="fas fa-trash"></i></button>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function enviarSugestao(event){
+    event.preventDefault();
+    if(!usuarioLogado) return;
+    const campo = document.getElementById('sugestao-texto');
+    const texto = campo.value.trim();
+    if(!texto) return;
+
+    if(!DB.sugestoes) DB.sugestoes = [];
+    const novoId = DB.sugestoes.length ? Math.max(...DB.sugestoes.map(s=>s.id))+1 : 1;
+    const agora = new Date();
+    DB.sugestoes.push({
+      id: novoId,
+      autorId: usuarioLogado.id,
+      texto,
+      data: agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+    });
+    salvarEstado();
+    campo.value = '';
+    renderizarSugestoes();
+  }
+
+  function removerSugestao(id){
+    if(!confirm('Excluir esta sugestão?')) return;
+    DB.sugestoes = (DB.sugestoes || []).filter(s=>s.id!==id);
+    salvarEstado();
+    renderizarSugestoes();
+  }
+
+  function removerConfirmacao(partidaId, userId){
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    partida.confirmados = (partida.confirmados || []).filter(id=>id!==userId);
+    partida.pagos = (partida.pagos || []).filter(id=>id!==userId);
+    salvarEstado();
+    atualizarTelaAtual();
+  }
+
+  // Admin marca/desmarca o pagamento de um jogador confirmado no próximo jogo
+  function alternarPagamento(partidaId, userId){
+    if(!usuarioLogado || usuarioLogado.perfil!=='admin') return;
+    const partida = DB.partidas.find(p=>p.id===partidaId);
+    if(!partida) return;
+    if(!partida.pagos) partida.pagos = [];
+    if(partida.pagos.includes(userId)){
+      partida.pagos = partida.pagos.filter(id=>id!==userId);
+    } else {
+      partida.pagos.push(userId);
+    }
+    salvarEstado();
+    renderizarListaProximoJogo();
+  }
+
+  // ---------- Admin: Jogadores ----------
+  function renderizarTabelaJogadores(){
+    const tbody = document.getElementById('tabela-admin-jogadores');
+    tbody.innerHTML = DB.usuarios.map(u=>`
+      <tr>
+        <td class="p-4">${avatarHTML(u, 'w-9 h-9 text-xs')}</td>
+        <td class="p-4 font-medium text-court-ink">${u.nome}${u.perfil==='admin' ? ' <span class="ml-1 text-[10px] font-bold uppercase tracking-wider text-court-teal bg-court-teal/10 px-2 py-0.5 rounded-full">Admin</span>' : ''}${u.avaliavel===false ? ' <span class="ml-1 text-[10px] font-bold uppercase tracking-wider text-court-coral bg-court-coral/10 px-2 py-0.5 rounded-full">Organizador</span>' : ''}</td>
+        <td class="p-4 text-court-muted">${u.usuario}</td>
+        <td class="p-4 text-court-muted">${u.senha}</td>
+        <td class="p-4">${u.ativo ? '<span class="text-emerald-600 text-xs font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Ativo</span>' : '<span class="text-gray-400 text-xs font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Inativo</span>'}</td>
+        <td class="p-3 sm:p-4 text-right whitespace-nowrap space-x-3">
+          <button onclick="editarJogador(${u.id})" class="text-court-teal hover:text-court-ink p-1"><i class="fas fa-pen"></i></button>
+          <button onclick="removerJogador(${u.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function salvarJogador(event){
+    event.preventDefault();
+    const id = document.getElementById('jog-id').value;
+    const nome = document.getElementById('jog-nome').value.trim();
+    const usuario = document.getElementById('jog-user').value.trim().toLowerCase();
+    const senha = document.getElementById('jog-senha').value;
+    const foto = document.getElementById('jog-foto').value.trim();
+    const ativo = document.getElementById('jog-ativo').checked;
+    const avaliavel = !document.getElementById('jog-coordenador').checked;
+
+    if(id){
+      const jog = DB.usuarios.find(u=>u.id===Number(id));
+      Object.assign(jog, {nome, usuario, senha, foto, ativo, avaliavel});
+    } else {
+      const novoId = DB.usuarios.length ? Math.max(...DB.usuarios.map(u=>u.id))+1 : 1;
+      DB.usuarios.push({id: novoId, nome, usuario, senha, foto, perfil:'jogador', ativo, avaliavel});
+    }
+
+    salvarEstado();
+    event.target.reset();
+    document.getElementById('jog-id').value = '';
+    document.getElementById('jog-ativo').checked = true;
+    document.getElementById('jog-coordenador').checked = false;
+    document.getElementById('titulo-form-jogador').textContent = 'Cadastrar Novo Jogador';
+    renderizarTabelaJogadores();
+  }
+
+  function editarJogador(id){
+    const jog = DB.usuarios.find(u=>u.id===id);
+    document.getElementById('jog-id').value = jog.id;
+    document.getElementById('jog-nome').value = jog.nome;
+    document.getElementById('jog-user').value = jog.usuario;
+    document.getElementById('jog-senha').value = jog.senha;
+    document.getElementById('jog-foto').value = jog.foto || '';
+    document.getElementById('jog-ativo').checked = jog.ativo;
+    document.getElementById('jog-coordenador').checked = jog.avaliavel === false;
+    document.getElementById('titulo-form-jogador').textContent = 'Editar Jogador';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function removerJogador(id){
+    const jog = DB.usuarios.find(u=>u.id===id);
+    if(jog.perfil==='admin'){ alert('Não é possível remover o administrador.'); return; }
+    if(!confirm('Remover este jogador? Essa ação não pode ser desfeita.')) return;
+    DB.usuarios = DB.usuarios.filter(u=>u.id!==id);
+    salvarEstado();
+    renderizarTabelaJogadores();
+  }
+
+  // ---------- Admin: Partidas ----------
+  const VALOR_NOVO = '__novo__';
+
+  function renderizarOpcoesLocais(selecionado){
+    const sel = document.getElementById('part-local');
+    const atual = selecionado || sel.value || DB.locais[0];
+    sel.innerHTML = DB.locais.map(l=>`<option value="${l}">${l}</option>`).join('')
+      + `<option value="${VALOR_NOVO}">+ Cadastrar novo local...</option>`;
+    sel.value = atual;
+  }
+
+  function onSelecionarLocal(sel){
+    if(sel.value !== VALOR_NOVO) return;
+    const nome = prompt('Nome do novo local:');
+    if(nome && nome.trim()){
+      DB.locais.push(nome.trim());
+      salvarEstado();
+      renderizarOpcoesLocais(nome.trim());
+    } else {
+      renderizarOpcoesLocais(DB.locais[0]);
+    }
+  }
+
+  function renderizarOpcoesQuadras(selecionado){
+    const sel = document.getElementById('part-quadra');
+    const atual = selecionado || sel.value || DB.quadras[0];
+    sel.innerHTML = DB.quadras.map(q=>`<option value="${q}">${q}</option>`).join('')
+      + `<option value="${VALOR_NOVO}">+ Cadastrar nova quadra...</option>`;
+    sel.value = atual;
+  }
+
+  function onSelecionarQuadra(sel){
+    if(sel.value !== VALOR_NOVO) return;
+    const nome = prompt('Nome/número da nova quadra (ex: Quadra 10):');
+    if(nome && nome.trim()){
+      DB.quadras.push(nome.trim());
+      salvarEstado();
+      renderizarOpcoesQuadras(nome.trim());
+    } else {
+      renderizarOpcoesQuadras(DB.quadras[0]);
+    }
+  }
+
+  function salvarPartida(event){
+    event.preventDefault();
+    const id = document.getElementById('part-id').value;
+    const data = document.getElementById('part-data').value;
+    const horario = document.getElementById('part-hora').value;
+    const local = document.getElementById('part-local').value;
+    const quadra = document.getElementById('part-quadra').value;
+    const obs = document.getElementById('part-obs').value.trim();
+
+    if(id){
+      const p = DB.partidas.find(x=>x.id===Number(id));
+      Object.assign(p, {data, horario, local, quadra, obs});
+    } else {
+      const novoId = DB.partidas.length ? Math.max(...DB.partidas.map(p=>p.id))+1 : 101;
+      DB.partidas.push({id: novoId, data, horario, local, quadra, obs, status: 'aberta', confirmados: [], pagos: []});
+    }
+
+    salvarEstado();
+    event.target.reset();
+    document.getElementById('part-id').value = '';
+    document.getElementById('titulo-form-partida').textContent = 'Cadastrar Nova Partida';
+    renderizarOpcoesLocais(DB.locais[0]);
+    renderizarOpcoesQuadras(DB.quadras[0]);
+    renderizarTabelaPartidas();
+  }
+
+  function editarPartida(id){
+    const p = DB.partidas.find(x=>x.id===id);
+    document.getElementById('part-id').value = p.id;
+    document.getElementById('part-data').value = p.data;
+    document.getElementById('part-hora').value = p.horario;
+    renderizarOpcoesLocais(p.local);
+    renderizarOpcoesQuadras(p.quadra);
+    document.getElementById('part-obs').value = p.obs;
+    document.getElementById('titulo-form-partida').textContent = 'Editar Partida';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function removerPartida(id){
+    if(!confirm('Remover esta partida?')) return;
+    DB.partidas = DB.partidas.filter(p=>p.id!==id);
+    DB.avaliacoes = DB.avaliacoes.filter(a=>a.partidaId!==id);
+    salvarEstado();
+    renderizarTabelaPartidas();
+  }
+
+  // Uma partida é considerada concluída (vai pro histórico, libera avaliação)
+  // quando o admin marca manualmente OU quando a data já passou.
+  function partidaConcluida(p){
+    const hoje = new Date().toISOString().slice(0,10);
+    return p.status === 'concluida' || p.data < hoje;
+  }
+
+  // Admin marca/desmarca uma partida como concluída manualmente — não precisa
+  // esperar a data passar pra liberar a avaliação dos colegas.
+  function alternarStatusPartida(id){
+    const p = DB.partidas.find(x=>x.id===id);
+    if(!p) return;
+    p.status = (p.status === 'concluida') ? 'aberta' : 'concluida';
+    salvarEstado();
+    renderizarTabelaPartidas();
+  }
+
+  function renderizarTabelaPartidas(){
+    const tbody = document.getElementById('tabela-admin-partidas');
+    tbody.innerHTML = [...DB.partidas].sort((a,b)=>a.data.localeCompare(b.data)).map(p=>{
+      const confirmados = p.confirmados || [];
+      const nomes = confirmados.length
+        ? confirmados.map(id=>DB.usuarios.find(u=>u.id===id)?.nome || '—').join(', ')
+        : '<span class="text-court-muted">Ninguém ainda</span>';
+      const concluida = partidaConcluida(p);
+      const statusBadge = concluida
+        ? `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">Concluída</span>`
+        : `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">Aberta</span>`;
+      return `
+      <tr>
+        <td class="p-3 sm:p-4 font-medium text-court-ink whitespace-nowrap">${formatarData(p.data)} · ${horarioComDuracao(p.horario)}</td>
+        <td class="p-3 sm:p-4 text-court-muted whitespace-nowrap">${p.local}</td>
+        <td class="p-3 sm:p-4 text-court-muted whitespace-nowrap">${p.quadra || '—'}</td>
+        <td class="p-3 sm:p-4 text-court-muted text-xs">${nomes} <span class="text-court-muted">(${confirmados.length}/12)</span></td>
+        <td class="p-3 sm:p-4 whitespace-nowrap">${statusBadge}</td>
+        <td class="p-3 sm:p-4 text-right whitespace-nowrap space-x-3">
+          <button onclick="alternarStatusPartida(${p.id})" title="${concluida ? 'Reabrir partida' : 'Marcar como concluída'}" class="text-xs font-semibold ${concluida ? 'text-court-teal' : 'text-gray-500'} hover:underline">${concluida ? 'Reabrir' : 'Concluir'}</button>
+          <button onclick="editarPartida(${p.id})" class="text-court-teal hover:text-court-ink p-1"><i class="fas fa-pen"></i></button>
+          <button onclick="removerPartida(${p.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ---------- Admin: Avaliações ----------
+  function popularFiltroJogadores(){
+    const sel = document.getElementById('filtro-jogador');
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todos</option>' + DB.usuarios.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('');
+    sel.value = atual;
+  }
+
+  function renderizarAbaAvaliacoes(){
+    const mes = document.getElementById('filtro-mes').value;
+    const jogadorId = document.getElementById('filtro-jogador').value;
+    let lista = DB.avaliacoes.filter(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      if(!partida) return false;
+      if(mes && !partida.data.startsWith(mes)) return false;
+      if(jogadorId && a.jogadorId !== Number(jogadorId)) return false;
+      return true;
+    });
+
+    const tbody = document.getElementById('tabela-admin-avaliacoes');
+    tbody.innerHTML = lista.map(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      const avaliador = DB.usuarios.find(u=>u.id===a.avaliadorId);
+      const avaliado = DB.usuarios.find(u=>u.id===a.jogadorId);
+      return `
+      <tr>
+        <td class="p-4 text-court-muted text-xs">${partida ? formatarData(partida.data) : '—'}</td>
+        <td class="p-4">${avaliador?.nome || '—'}</td>
+        <td class="p-4 font-medium text-court-ink">${avaliado?.nome || '—'}</td>
+        <td class="p-4 text-court-coral font-bold">${a.nota}<span class="text-xs text-court-muted">/10</span></td>
+        <td class="p-4 text-court-muted text-xs">${a.comentario || '—'}</td>
+        <td class="p-4 text-right">
+          <button onclick="removerAvaliacao(${a.id})" class="text-red-400 hover:text-red-600 p-1" title="Excluir avaliação"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const media = lista.length ? (lista.reduce((s,a)=>s+a.nota,0)/lista.length).toFixed(2) : '0.00';
+    document.getElementById('media-geral-painel').textContent = media;
+  }
+
+  function removerAvaliacao(id){
+    if(!confirm('Excluir esta avaliação? Essa ação não pode ser desfeita.')) return;
+    DB.avaliacoes = DB.avaliacoes.filter(a=>a.id!==id);
+    salvarEstado();
+    renderizarAbaAvaliacoes();
+  }
+
+  // ---------- Ranking (usado pelo Admin e também pelo jogador em "Notas Gerais") ----------
+  // Sem "mesFiltro", considera o histórico completo (usado na Classificação Geral).
+  // Com "mesFiltro" (formato "YYYY-MM"), considera só avaliações de partidas daquele mês
+  // (usado na apuração do brinde mensal e no hall da fama).
+  function construirRanking(mesFiltro){
+    // Organizadores (avaliavel:false) e qualquer perfil "admin" nunca entram
+    // no ranking nem concorrem ao brinde, mesmo que tenham recebido notas.
+    return DB.usuarios.filter(u=>u.avaliavel !== false && u.perfil !== 'admin').map(u=>{
+      const recebidas = DB.avaliacoes.filter(a=>{
+        if(a.jogadorId!==u.id) return false;
+        if(!mesFiltro) return true;
+        const partida = DB.partidas.find(p=>p.id===a.partidaId);
+        return partida && partida.data.startsWith(mesFiltro);
+      });
+      const media = recebidas.length ? recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length : 0;
+      const partidasDisputadas = DB.partidas.filter(p=>(p.confirmados||[]).includes(u.id) && (!mesFiltro || p.data.startsWith(mesFiltro))).length;
+      return {u, media, partidasDisputadas, avaliacoesRecebidas: recebidas.length};
+    }).filter(r=>r.avaliacoesRecebidas>0).sort((a,b)=>b.media-a.media);
+  }
+
+  // Monta, mês a mês, quem teria vencido o brinde — usado no Hall da Fama.
+  // Não guarda nada à parte: é sempre recalculado em cima das avaliações e
+  // partidas já existentes, então nunca fica desatualizado.
+  function construirHistoricoBrindes(){
+    const mesAtual = new Date().toISOString().slice(0,7);
+    const meses = new Set();
+    DB.avaliacoes.forEach(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      if(partida) meses.add(partida.data.slice(0,7));
+    });
+    return [...meses]
+      .filter(m=>m < mesAtual) // o mês corrente ainda está em andamento, não entra no hall da fama
+      .sort((a,b)=>b.localeCompare(a))
+      .map(mes=>{
+        const ranking = construirRanking(mes);
+        return ranking.length ? {mes, vencedor: ranking[0].u, media: ranking[0].media} : null;
+      })
+      .filter(Boolean);
+  }
+
+  function nomeMesAno(mesStr){
+    const [ano, mes] = mesStr.split('-').map(Number);
+    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return `${nomes[mes-1]}/${ano}`;
+  }
+
+  function renderizarHistoricoBrindes(){
+    const cont = document.getElementById('lista-hall-fama');
+    if(!cont) return;
+    const historico = construirHistoricoBrindes();
+    if(!historico.length){
+      cont.innerHTML = `<div class="p-6 text-center text-court-muted text-sm">Ainda não há nenhum mês fechado no histórico.</div>`;
+      return;
+    }
+    cont.innerHTML = historico.map(h=>`
+      <div class="p-4 flex items-center gap-3">
+        <span class="text-lg">🏆</span>
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          ${avatarHTML(h.vencedor, 'w-8 h-8 text-xs')}
+          <div class="min-w-0">
+            <p class="font-semibold text-court-ink text-sm truncate">${h.vencedor.nome}</p>
+            <p class="text-xs text-court-muted">${nomeMesAno(h.mes)}</p>
+          </div>
+        </div>
+        <span class="text-court-coral font-bold shrink-0">${h.media.toFixed(2)}<span class="text-xs text-court-muted">/10</span></span>
+      </div>`).join('');
+  }
+
+  // Calcula a média mensal de um jogador (uma nota média por mês em que
+  // recebeu avaliação), pronta para o gráfico de evolução.
+  function mediaMensalJogador(jogadorId){
+    const porMes = {};
+    DB.avaliacoes.filter(a=>a.jogadorId===jogadorId).forEach(a=>{
+      const partida = DB.partidas.find(p=>p.id===a.partidaId);
+      if(!partida) return;
+      const mes = partida.data.slice(0,7);
+      if(!porMes[mes]) porMes[mes] = [];
+      porMes[mes].push(a.nota);
+    });
+    return Object.keys(porMes).sort().map(mes=>({
+      mes,
+      media: porMes[mes].reduce((s,n)=>s+n,0) / porMes[mes].length
+    }));
+  }
+
+  // Desenha um gráfico de linha simples (SVG puro, sem biblioteca externa)
+  // com a evolução da média mês a mês.
+  function renderizarGraficoEvolucao(containerId, dadosMensais){
+    const cont = document.getElementById(containerId);
+    if(!cont) return;
+    if(!dadosMensais.length){
+      cont.innerHTML = `<p class="text-sm text-court-muted text-center py-8">Ainda não há avaliações suficientes para montar o gráfico.</p>`;
+      return;
+    }
+    const W = 640, H = 220, PAD_X = 36, PAD_Y = 30;
+    const max = 10, min = 0;
+    const passoX = dadosMensais.length > 1 ? (W - 2*PAD_X) / (dadosMensais.length - 1) : 0;
+    const pontos = dadosMensais.map((d,i)=>{
+      const x = dadosMensais.length > 1 ? PAD_X + i*passoX : W/2;
+      const y = (H - PAD_Y) - ((d.media - min) / (max - min)) * (H - 2*PAD_Y);
+      return {x, y, ...d};
+    });
+    const linha = pontos.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const labels = pontos.map(p=>{
+      const [ano, mes] = p.mes.split('-');
+      return `<text x="${p.x.toFixed(1)}" y="${H-8}" font-size="10" text-anchor="middle" fill="#8a8a8a">${nomesMes[Number(mes)-1]}/${ano.slice(2)}</text>`;
+    }).join('');
+    const pontosCirculos = pontos.map(p=>`
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#0d9488"/>
+      <text x="${p.x.toFixed(1)}" y="${(p.y-10).toFixed(1)}" font-size="11" text-anchor="middle" fill="#0d9488" font-weight="bold">${p.media.toFixed(1)}</text>
+    `).join('');
+    cont.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto" style="max-height:240px">
+        <line x1="${PAD_X}" y1="${H-PAD_Y}" x2="${W-PAD_X}" y2="${H-PAD_Y}" stroke="#e5e5e5"/>
+        <line x1="${PAD_X}" y1="${PAD_Y}" x2="${PAD_X}" y2="${H-PAD_Y}" stroke="#e5e5e5"/>
+        ${dadosMensais.length > 1 ? `<polyline points="${linha}" fill="none" stroke="#0d9488" stroke-width="2.5"/>` : ''}
+        ${pontosCirculos}
+        ${labels}
+      </svg>`;
+  }
+
+  function popularSeletorGraficoJogador(){
+    const sel = document.getElementById('grafico-jogador-select');
+    if(!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = DB.usuarios.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('');
+    sel.value = atual || (usuarioLogado ? usuarioLogado.id : DB.usuarios[0]?.id);
+  }
+
+  function renderizarGraficoJogadorSelecionado(){
+    const sel = document.getElementById('grafico-jogador-select');
+    if(!sel || !sel.value) return;
+    const dados = mediaMensalJogador(Number(sel.value));
+    renderizarGraficoEvolucao('grafico-evolucao-media', dados);
+  }
+
+  // Calcula a posição de cada jogador no ranking, dando a mesma posição
+  // para quem empata na média (ex: 1º, 2º, 2º, 4º), em vez de simplesmente
+  // usar o índice da lista. Compara a média arredondada em 2 casas para
+  // evitar que diferenças de ponto flutuante quebrem um empate "de verdade".
+  function posicoesComEmpate(ranking){
+    let posicaoAtual = 0;
+    let mediaAnterior = null;
+    return ranking.map((r,i)=>{
+      const mediaArred = Math.round(r.media*100);
+      if(mediaArred !== mediaAnterior){
+        posicaoAtual = i+1;
+        mediaAnterior = mediaArred;
+      }
+      return {...r, posicao: posicaoAtual};
+    });
+  }
+
+  function renderizarRanking(){
+    const ranking = posicoesComEmpate(construirRanking());
+
+    const tbody = document.getElementById('tabela-admin-ranking');
+    tbody.innerHTML = ranking.map(r=>`
+      <tr>
+        <td class="p-4 font-bold text-court-ink">${r.posicao}º</td>
+        <td class="p-4 font-medium text-court-ink"><div class="flex items-center gap-3">${avatarHTML(r.u, 'w-8 h-8 text-xs')}<span>${r.u.nome}</span></div></td>
+        <td class="p-4 text-center font-bold text-court-teal">${r.media.toFixed(2)}</td>
+        <td class="p-4 text-center text-court-muted">${r.partidasDisputadas}</td>
+        <td class="p-4 text-center text-court-muted">${r.avaliacoesRecebidas}</td>
+      </tr>`).join('') || `<tr><td colspan="5" class="p-6 text-center text-court-muted text-sm">Ainda não há avaliações registradas.</td></tr>`;
+
+    const mesAtual = new Date().toISOString().slice(0,7);
+    const rankingMesAtual = construirRanking(mesAtual);
+    const box = document.getElementById('resultado-brinde-box');
+    if(rankingMesAtual.length){
+      const vencedor = rankingMesAtual[0];
+      box.innerHTML = `
+        <p class="text-sm text-court-muted mb-1">Jogador(a) com a melhor média em ${nomeMesAno(mesAtual)}:</p>
+        <p class="text-2xl font-display font-bold text-court-ink">${vencedor.u.nome}</p>
+        <p class="text-court-coral font-bold text-lg">${vencedor.media.toFixed(2)}<span class="text-sm text-court-muted">/10</span></p>`;
+    } else {
+      box.innerHTML = `<p class="text-sm text-court-muted">Ainda não há avaliações suficientes neste mês para apurar o brinde.</p>`;
+    }
+
+    popularSeletorGraficoJogador();
+    renderizarGraficoJogadorSelecionado();
+    renderizarHistoricoBrindes();
+  }
+
+  // Mesma classificação geral, só que exibida na tela do jogador (somente leitura)
+  function renderizarRankingJogador(){
+    const ranking = posicoesComEmpate(construirRanking());
+    const tbody = document.getElementById('tabela-jogador-ranking');
+    if(!tbody) return;
+    tbody.innerHTML = ranking.map(r=>`
+      <tr class="${usuarioLogado && r.u.id===usuarioLogado.id ? 'bg-court-teal/5' : ''}">
+        <td class="p-3 sm:p-4 font-bold text-court-ink">${r.posicao}º</td>
+        <td class="p-3 sm:p-4 font-medium text-court-ink"><div class="flex items-center gap-3">${avatarHTML(r.u, 'w-8 h-8 text-xs')}<span>${r.u.nome}</span></div></td>
+        <td class="p-3 sm:p-4 text-center font-bold text-court-teal">${r.media.toFixed(2)}</td>
+        <td class="p-3 sm:p-4 text-center text-court-muted">${r.avaliacoesRecebidas}</td>
+      </tr>`).join('') || `<tr><td colspan="4" class="p-6 text-center text-court-muted text-sm">Ainda não há avaliações registradas.</td></tr>`;
+  }
+
+  // Histórico de avaliações recebidas pelo próprio jogador logado
+  function renderizarMinhasAvaliacoes(){
+    const cont = document.getElementById('lista-minhas-avaliacoes');
+    if(!cont || !usuarioLogado) return;
+
+    const recebidas = DB.avaliacoes
+      .filter(a=>a.jogadorId===usuarioLogado.id)
+      .map(a=>({...a, partida: DB.partidas.find(p=>p.id===a.partidaId)}))
+      .sort((a,b)=>{
+        const da = a.partida ? a.partida.data : '';
+        const db_ = b.partida ? b.partida.data : '';
+        return db_.localeCompare(da);
+      });
+
+    const media = recebidas.length ? (recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length).toFixed(2) : '0.00';
+    document.getElementById('minha-media-avaliacoes').textContent = media;
+
+    renderizarGraficoEvolucao('grafico-evolucao-minha-media', mediaMensalJogador(usuarioLogado.id));
+
+    if(!recebidas.length){
+      cont.innerHTML = `<div class="p-8 text-center text-court-muted text-sm">Você ainda não recebeu nenhuma avaliação.</div>`;
+      return;
+    }
+
+    cont.innerHTML = recebidas.map(a=>{
+      const avaliador = DB.usuarios.find(u=>u.id===a.avaliadorId);
+      return `
+      <div class="p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div class="flex items-center gap-2 sm:w-40 shrink-0">
+          ${avatarHTML(avaliador || {nome:'—', usuario:'x'}, 'w-7 h-7 text-xs')}
+          <span class="text-xs text-court-muted truncate">${avaliador ? avaliador.nome : '—'}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs text-court-muted">${a.partida ? formatarData(a.partida.data) : '—'}</p>
+          <p class="text-sm text-court-ink truncate">${a.comentario || '<span class="italic text-court-muted">Sem comentário</span>'}</p>
+        </div>
+        <div class="text-court-coral font-bold text-lg shrink-0 self-start sm:self-auto">${a.nota}<span class="text-xs text-court-muted">/10</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- Admin: Exportar ----------
+  function renderizarExportar(){
+    document.getElementById('export-textarea').value = JSON.stringify(DB, null, 2);
+  }
+
+  function baixarDados(){
+    const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'familia-volei-dados.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Instalar como aplicativo (PWA) ----------
+  let promptDeInstalacao = null;
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(err=>console.warn('Service worker não registrado:', err));
+    });
+  }
+
+  function appJaInstalado(){
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  window.addEventListener('beforeinstallprompt', (event)=>{
+    event.preventDefault();
+    promptDeInstalacao = event;
+    if(!appJaInstalado()){
+      document.getElementById('botao-instalar-app-container').classList.remove('hidden');
+    }
+  });
+
+  function instalarApp(){
+    if(!promptDeInstalacao) return;
+    promptDeInstalacao.prompt();
+    promptDeInstalacao.userChoice.finally(()=>{
+      promptDeInstalacao = null;
+      document.getElementById('botao-instalar-app-container').classList.add('hidden');
+    });
+  }
+
+  window.addEventListener('appinstalled', ()=>{
+    document.getElementById('botao-instalar-app-container').classList.add('hidden');
+  });
+
+  // iOS Safari não dispara "beforeinstallprompt": mostramos a dica manual
+  (function(){
+    const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if(ehIOS && !appJaInstalado()){
+      document.getElementById('botao-instalar-app-container').classList.remove('hidden');
+      document.getElementById('botao-instalar-app').classList.add('hidden');
+      document.getElementById('dica-instalar-ios').classList.remove('hidden');
+    }
+  })();
+
+  // ---------- Inicialização ----------
+  document.getElementById('filtro-mes').value = '2026-07';
+</script>
+
+</body>
+</html>
