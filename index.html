@@ -254,6 +254,25 @@
     <button onclick="pedirPermissaoNotificacao()" id="btn-nav-notificacoes" class="hidden w-full text-left px-3 py-3 rounded-lg text-court-ink hover:bg-court-bg transition">
       <span class="flex items-center gap-3"><i class="fas fa-bell w-5 text-center text-court-teal"></i><span class="font-medium text-sm">Ativar Avisos</span></span>
     </button>
+
+    <div id="menu-admin-secao" class="hidden">
+      <p class="text-xs font-bold text-court-muted px-3 uppercase tracking-wider mt-4 mb-1 pt-3 border-t border-court-line">Painel Admin</p>
+      <button onclick="irParaAdmin('jogadores')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn bg-court-teal/10 text-court-teal" id="btn-sub-jogadores">
+        <span class="flex items-center gap-3"><i class="fas fa-users w-5 text-center"></i><span class="font-medium text-sm">Jogadores</span></span>
+      </button>
+      <button onclick="irParaAdmin('partidas')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-partidas">
+        <span class="flex items-center gap-3"><i class="fas fa-calendar-alt w-5 text-center"></i><span class="font-medium text-sm">Partidas</span></span>
+      </button>
+      <button onclick="irParaAdmin('avaliacoes')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-avaliacoes">
+        <span class="flex items-center gap-3"><i class="fas fa-star w-5 text-center"></i><span class="font-medium text-sm">Avaliações</span></span>
+      </button>
+      <button onclick="irParaAdmin('ranking')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-ranking">
+        <span class="flex items-center gap-3"><i class="fas fa-trophy w-5 text-center"></i><span class="font-medium text-sm">Ranking &amp; Brinde</span></span>
+      </button>
+      <button onclick="irParaAdmin('exportar')" class="w-full text-left px-3 py-3 rounded-lg transition menu-admin-btn text-gray-600 hover:bg-court-bg" id="btn-sub-exportar">
+        <span class="flex items-center gap-3"><i class="fas fa-code w-5 text-center"></i><span class="font-medium text-sm">Exportar Dados</span></span>
+      </button>
+    </div>
   </nav>
   <div class="p-3 border-t border-court-line shrink-0">
     <button onclick="fecharMenu(); logout();" class="w-full text-left px-3 py-3 rounded-lg text-red-500 hover:bg-red-50 transition">
@@ -480,27 +499,8 @@
 
   <!-- ADMIN -->
   <section id="tela-admin" class="hidden">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
-      <div class="bg-white p-2 md:p-4 rounded-2xl shadow-sm border border-court-line h-fit flex md:block gap-1 md:space-y-1 overflow-x-auto md:overflow-visible">
-        <p class="hidden md:block text-xs font-bold text-court-muted px-3 uppercase tracking-wider mb-2">Menu Admin</p>
-        <button onclick="mudarSubTelaAdmin('jogadores')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap bg-court-teal/10 text-court-teal menu-admin-btn" id="btn-sub-jogadores">
-          <i class="fas fa-users w-5"></i> Jogadores
-        </button>
-        <button onclick="mudarSubTelaAdmin('partidas')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-partidas">
-          <i class="fas fa-calendar-alt w-5"></i> Partidas
-        </button>
-        <button onclick="mudarSubTelaAdmin('avaliacoes')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-avaliacoes">
-          <i class="fas fa-star w-5"></i> Avaliações
-        </button>
-        <button onclick="mudarSubTelaAdmin('ranking')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-ranking">
-          <i class="fas fa-trophy w-5"></i> Ranking &amp; Brinde
-        </button>
-        <button onclick="mudarSubTelaAdmin('exportar')" class="shrink-0 md:w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap text-gray-600 hover:bg-gray-50 menu-admin-btn" id="btn-sub-exportar">
-          <i class="fas fa-code w-5"></i> Exportar Dados
-        </button>
-      </div>
-
-      <div class="md:grid-cols-1 md:col-span-3 space-y-6">
+    <div class="grid grid-cols-1 gap-4 md:gap-6">
+      <div class="space-y-6">
 
         <!-- JOGADORES -->
         <div id="sub-admin-jogadores" class="sub-admin-pane space-y-6">
@@ -714,6 +714,7 @@
 
 </main>
 
+
 <script>
   // ---------- Navegação ----------
   // Pilha (histórico) de telas visitadas, para o botão "Voltar" sempre
@@ -769,6 +770,14 @@
     if(sub==='partidas') renderizarPainelJogador();
     if(sub==='ranking') renderizarRankingJogador();
     if(sub==='avaliacoes') renderizarMinhasAvaliacoes();
+  }
+
+  // Chamado pelos botões do "Painel Admin" no menu lateral: fecha o menu,
+  // garante que a tela do admin esteja visível e troca para a aba pedida.
+  function irParaAdmin(sub){
+    fecharMenu();
+    mudarTela('tela-admin');
+    mudarSubTelaAdmin(sub);
   }
 
   function mudarSubTelaAdmin(sub){
@@ -865,6 +874,7 @@
     document.getElementById('nav-user-name').textContent = user.nome;
     document.getElementById('nav-user-avatar').innerHTML = avatarHTML(user, 'w-9 h-9 text-xs');
     document.getElementById('btn-nav-area-jogador').classList.toggle('hidden', user.perfil !== 'admin');
+    document.getElementById('menu-admin-secao').classList.toggle('hidden', user.perfil !== 'admin');
     atualizarBotaoNotificacao();
     if(user.perfil === 'admin'){
       mudarTela('tela-admin');
@@ -968,8 +978,8 @@
       const partidasJogadas = DB.partidas.filter(p=>(p.confirmados||[]).includes(usuarioLogado.id)).length;
       const recebidas = DB.avaliacoes.filter(a=>a.jogadorId===usuarioLogado.id);
       const media = recebidas.length ? (recebidas.reduce((s,a)=>s+a.nota,0)/recebidas.length) : null;
-      const ranking = construirRanking();
-      const posicao = ranking.findIndex(r=>r.u.id===usuarioLogado.id);
+      const ranking = posicoesComEmpate(construirRanking());
+      const meuRanking = ranking.find(r=>r.u.id===usuarioLogado.id);
       const foraDoRanking = usuarioLogado.avaliavel===false || usuarioLogado.perfil==='admin';
 
       statsCont.innerHTML = `
@@ -982,7 +992,7 @@
           <p class="text-xs text-court-muted mt-0.5">Média geral</p>
         </div>
         <div>
-          <p class="text-2xl font-display font-bold text-court-coral">${foraDoRanking ? '—' : (posicao>=0 ? (posicao+1)+'º' : '—')}</p>
+          <p class="text-2xl font-display font-bold text-court-coral">${foraDoRanking ? '—' : (meuRanking ? meuRanking.posicao+'º' : '—')}</p>
           <p class="text-xs text-court-muted mt-0.5">${foraDoRanking ? 'Não concorre' : 'Posição no ranking'}</p>
         </div>`;
     }
@@ -1930,13 +1940,30 @@
     renderizarGraficoEvolucao('grafico-evolucao-media', dados);
   }
 
+  // Calcula a posição de cada jogador no ranking, dando a mesma posição
+  // para quem empata na média (ex: 1º, 2º, 2º, 4º), em vez de simplesmente
+  // usar o índice da lista. Compara a média arredondada em 2 casas para
+  // evitar que diferenças de ponto flutuante quebrem um empate "de verdade".
+  function posicoesComEmpate(ranking){
+    let posicaoAtual = 0;
+    let mediaAnterior = null;
+    return ranking.map((r,i)=>{
+      const mediaArred = Math.round(r.media*100);
+      if(mediaArred !== mediaAnterior){
+        posicaoAtual = i+1;
+        mediaAnterior = mediaArred;
+      }
+      return {...r, posicao: posicaoAtual};
+    });
+  }
+
   function renderizarRanking(){
-    const ranking = construirRanking();
+    const ranking = posicoesComEmpate(construirRanking());
 
     const tbody = document.getElementById('tabela-admin-ranking');
-    tbody.innerHTML = ranking.map((r,i)=>`
+    tbody.innerHTML = ranking.map(r=>`
       <tr>
-        <td class="p-4 font-bold text-court-ink">${i+1}º</td>
+        <td class="p-4 font-bold text-court-ink">${r.posicao}º</td>
         <td class="p-4 font-medium text-court-ink"><div class="flex items-center gap-3">${avatarHTML(r.u, 'w-8 h-8 text-xs')}<span>${r.u.nome}</span></div></td>
         <td class="p-4 text-center font-bold text-court-teal">${r.media.toFixed(2)}</td>
         <td class="p-4 text-center text-court-muted">${r.partidasDisputadas}</td>
@@ -1963,12 +1990,12 @@
 
   // Mesma classificação geral, só que exibida na tela do jogador (somente leitura)
   function renderizarRankingJogador(){
-    const ranking = construirRanking();
+    const ranking = posicoesComEmpate(construirRanking());
     const tbody = document.getElementById('tabela-jogador-ranking');
     if(!tbody) return;
-    tbody.innerHTML = ranking.map((r,i)=>`
+    tbody.innerHTML = ranking.map(r=>`
       <tr class="${usuarioLogado && r.u.id===usuarioLogado.id ? 'bg-court-teal/5' : ''}">
-        <td class="p-3 sm:p-4 font-bold text-court-ink">${i+1}º</td>
+        <td class="p-3 sm:p-4 font-bold text-court-ink">${r.posicao}º</td>
         <td class="p-3 sm:p-4 font-medium text-court-ink"><div class="flex items-center gap-3">${avatarHTML(r.u, 'w-8 h-8 text-xs')}<span>${r.u.nome}</span></div></td>
         <td class="p-3 sm:p-4 text-center font-bold text-court-teal">${r.media.toFixed(2)}</td>
         <td class="p-3 sm:p-4 text-center text-court-muted">${r.avaliacoesRecebidas}</td>
